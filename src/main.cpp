@@ -32,7 +32,8 @@ struct Bot {
 };
 
 int main(int argc, char *argv[]) {
-  auto [host, port] = parseArgs(argc, argv);
-  runBot<Bot>(host, port);
-  return 0;
+	auto host = parseArgs(argc, argv)[0];
+	auto port = parseArgs(argc, argv)[1];
+	runBot<Bot>(host, port);
+	return 0;
 }
