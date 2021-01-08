@@ -16,7 +16,9 @@ int cton(char value, bool aceLower = false);
 char ntoc(int value);
 
 std::vector<Card> createCards(std::vector<Card> excludes);
+
 std::vector<Card> sortCards(std::vector<Card> cards);
+void sortCards(std::vector<Card>* cards_ptr);
 
 char highestPair(std::vector<Card>, char exclude = NONE);
 char highestTriple(std::vector<Card>, char exclude = NONE);

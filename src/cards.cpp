@@ -325,7 +325,6 @@ double MonteCarloProb(std::array<Card, 2> hole, std::vector<Card> middle, std::v
 		}
 
 		std::array<Card, 2> oppHole = {remaining[i], remaining[j]};
-		std::array<std::array<Card, 2>, 2> holes = {hole, oppHole};
 
 		std::vector<Card> future = middle;
 		future.reserve(5);
@@ -346,7 +345,8 @@ double MonteCarloProb(std::array<Card, 2> hole, std::vector<Card> middle, std::v
 			future.push_back(remaining[h]);
 		}
 
-		if (middle.size() == 4) {
+		if (middle.size() == 4)
+		{
 			int g = rand() % remaining.size();
 			while (g == i || g == j)
 			{
@@ -354,26 +354,25 @@ double MonteCarloProb(std::array<Card, 2> hole, std::vector<Card> middle, std::v
 			}
 			future.push_back(remaining[g]);
 		}
-		
-		std::array<std::vector<Card>, 2> pools;
-		for (int i = 0; i < 2; i++)
-		{
-			std::vector<Card> pool;
-			pool.reserve(7);
-			for (Card card : future)
-			{
-				pool.push_back(card);
-			}
-			for (Card card : holes[i])
-			{
-				pool.push_back(card);
-			}
 
-			pools[i] = pool;
+		std::vector<Card> pool;
+		pool.reserve(7);
+		std::vector<Card> oppPool;
+		oppPool.reserve(7);
+		for (Card card : future)
+		{
+			pool.push_back(card);
+			oppPool.push_back(card);
 		}
 
-		std::string hand = bestHand(pools[0]);
-		std::string opp = bestHand(pools[1]);
+		for (int i = 0; i < 2; i++)
+		{
+			pool.push_back(hole[i]);
+			oppPool.push_back(oppHole[i]);
+		}
+
+		std::string hand = bestHand(pool);
+		std::string opp = bestHand(oppPool);
 		if (compareHands(hand, opp) > 0)
 		{
 			above++;
@@ -388,6 +387,8 @@ double MonteCarloProb(std::array<Card, 2> hole, std::vector<Card> middle, std::v
 		}
 	}
 
-	fmt::print("There are {} wins out of {} attempts \n", above, (above + below + equiv));
-	return (float)above / (above + below + equiv);
+	double wins = above + (equiv/2.0);
+	double total = above + below + equiv;
+	fmt::print("Results: {} wins / {}. Win probability: {}. \n", wins, total, wins/total);
+	return wins/total;
 }

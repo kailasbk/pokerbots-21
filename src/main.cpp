@@ -32,10 +32,6 @@ double prob(RoundStatePtr roundState, int i, int active)
 		}
 	}
 
-	std::vector<Card> sorted = sortCards(pool);
-	std::string handType = bestHand(pool);
-	fmt::print("The sorted pool is {}. Best hand is {}. \n", fmt::join(sorted, ", "), handType);
-
 	std::vector<Card> remaining = createCards(pool);
 
 	return MonteCarloProb(hand, middle, remaining);
@@ -43,8 +39,22 @@ double prob(RoundStatePtr roundState, int i, int active)
 
 struct Bot
 {
+	std::array<Card, 6> cards;
+
 	void handleNewRound(GameInfoPtr gameState, RoundStatePtr roundState, int active)
 	{
+		cards = roundState->hands[active];
+		std::vector<Card> unsorted;
+		unsorted.reserve(6);
+		for (Card card: cards)
+		{
+			unsorted.push_back(card);
+		}
+		std::vector<Card> sorted = sortCards(unsorted);
+		for (int i = 0; i < 6; i++)
+		{
+			cards[i] = sorted[i];
+		}
 	}
 
 	void handleRoundOver(GameInfoPtr gameState, TerminalStatePtr terminalState, int active)
@@ -55,34 +65,58 @@ struct Bot
 	std::vector<Action> getActions(GameInfoPtr gameState, RoundStatePtr roundState, int active)
 	{
 		auto legalActions = roundState->legalActions();
-		auto myCards = roundState->hands[active];
 		std::vector<Action> myActions;
-		myActions.reserve(NUM_BOARDS);
 		for (int i = 0; i < NUM_BOARDS; i++)
 		{
 			// if assign action is legal
 			if (legalActions[i].find(Action::Type::ASSIGN) != legalActions[i].end())
 			{
-				// assign the cards to the board sequentially
+				// assign the cards to the board sequentially from sorted cards
 				myActions.emplace_back(
 					Action::Type::ASSIGN,
-					std::array<Card, 2>{myCards[2 * i], myCards[2 * i + 1]});
+					std::array<Card, 2>{cards[2 * i], cards[2 * i + 1]});
 			}
-			// if you have a pair
-			else if (prob(roundState, i, active) >= .7 && legalActions[i].find(Action::Type::RAISE) != legalActions[i].end())
+			else 
 			{
-				myActions.emplace_back(Action::Type::RAISE, 3 * BIG_BLIND);
-			}
-			// if the check action is legal
-			else if (legalActions[i].find(Action::Type::CHECK) != legalActions[i].end())
-			{
-				// check on the board
-				myActions.emplace_back(Action::Type::CHECK);
-			}
-			else
-			{
-				// call on the board (always legal if check is not)
-				myActions.emplace_back(Action::Type::CALL);
+				const BoardStatePtr board_ptr = std::static_pointer_cast<const BoardState>(roundState->boardStates[i]);
+				int stack = roundState->stacks[active];
+				int continueCost = board_ptr->pips[(1 + active) % 2] - board_ptr->pips[active];
+				int pot = board_ptr->pot;
+				double potOdds = (double)continueCost / (pot + continueCost);
+				double winProb = prob(roundState, i, active);
+				
+				// if they haven't raised and we can raise
+				if (winProb >= .8 && legalActions[i].find(Action::Type::RAISE) != legalActions[i].end())
+				{
+					if (BIG_BLIND <= 3 * BIG_BLIND &&  3 * BIG_BLIND <= stack)
+					{
+						myActions.emplace_back(Action::Type::RAISE, 3 * BIG_BLIND);
+					}
+					else
+					{
+						myActions.emplace_back(Action::Type::RAISE, stack);
+					}
+				}
+				// if opponent just raised (call and fold, maybe raise, are legal)
+				else if (legalActions[i].find(Action::Type::CALL) != legalActions[i].end())
+				{
+					// check on the board
+					if (winProb > potOdds)
+					{
+						myActions.emplace_back(Action::Type::CALL);
+					}
+					else 
+					{
+						// change to fold when possible
+						myActions.emplace_back(Action::Type::CALL);
+					}
+				}
+				// if its not worth raising, just check
+				else if (legalActions[i].find(Action::Type::CHECK) != legalActions[i].end())
+				{
+					// else check on the board
+					myActions.emplace_back(Action::Type::CHECK);
+				}
 			}
 		}
 		return myActions;

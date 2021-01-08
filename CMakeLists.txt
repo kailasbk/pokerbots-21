@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.2)
 
 # Replace "cpp-pokerbot" with your bot's name
-project(cpp-pokerbot)
+project(Kaido)
 
 set(CMAKE_CXX_STANDARD 17)
 
