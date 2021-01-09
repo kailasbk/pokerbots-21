@@ -1,3 +1,5 @@
 # ignore the build files
 /build
 /.vscode
+*.txt
+*.pyc
