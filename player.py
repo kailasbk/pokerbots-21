@@ -35,7 +35,7 @@ class Player(Bot):
 				pool.append(card)
 				middle.append(card)
 
-		remaining = createCards(pool)
+		remaining = create_cards(pool)
 
 		return MonteCarloProb(hand, middle, remaining)
 
@@ -52,8 +52,8 @@ class Player(Bot):
 		Nothing.
 		'''
 		self.cards = round_state.hands[active]
-		self.cards = sortCards(self.cards)
-		print("----------BEGIN ROUND {}--CLOCK:{}----------".format(game_state.round_num, game_state.game_clock))
+		self.cards = sort_cards(self.cards)
+		print(f"----------BEGIN ROUND {game_state.round_num}--CLOCK:{game_state.game_clock}----------")
 
 		pass
 
@@ -69,7 +69,7 @@ class Player(Bot):
 		Returns:
 		Nothing.
 		'''
-		print("----------END ROUND {}----CLOCK:{}----------".format(game_state.round_num, game_state.game_clock))
+		print(f"----------END ROUND {game_state.round_num}----CLOCK:{game_state.game_clock}----------")
 		pass
 
 	def get_actions(self, game_state: GameState, round_state: RoundState, active: int):
@@ -108,32 +108,32 @@ class Player(Bot):
 					amount = board_state.pips[1-active] + increase
 					# if can bet normally
 					if stack > 3 * BIG_BLIND + continue_cost and board_state.pips[active] < 30:
-						print('Betting/raising on board {} to {}.'.format(i + 1, amount))
+						print(f'Betting/raising on board {i + 1} to {amount}.')
 						my_actions[i] = RaiseAction(amount)
 						stack -= amount
 					# otherwise (don't do all in rn)
 					else:
 						if CallAction in legal_actions[i]:
-							print('Calling on board {}.'.format(i + 1))
+							print(f'Calling on board {i + 1}.')
 							my_actions[i] = CallAction()
 						elif CheckAction in legal_actions[i]:
-							print('Checking on board {}.'.format(i + 1))
+							print(f'Checking on board {i + 1}.')
 							my_actions[i] = CheckAction()
 				# if opponent just raised (call and fold, maybe raise, are legal)
 				elif CallAction in legal_actions[i]:
 					# check on the board
 					if (winProb > potOdds):
 						print(f'Pot odds: {potOdds}')
-						print('Calling on board {}.'.format(i + 1))
+						print(f'Calling on board {i + 1}.')
 						my_actions[i] = CallAction()
 					else:
 						print(f'Pot odds: {potOdds}')
-						print('Folding on board {}.'.format(i + 1))
+						print(f'Folding on board {i + 1}.')
 						my_actions[i] = FoldAction()
 				# if its not worth raising, just check
 				elif CheckAction in legal_actions[i]:
 					# else check on the board
-					print('Checking on board {}.'.format(i + 1))
+					print(f'Checking on board {i + 1}.')
 					my_actions[i] = CheckAction()
 		return my_actions
 

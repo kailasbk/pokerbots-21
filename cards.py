@@ -37,7 +37,7 @@ ntoc = {
 	14: 'A',
 }
 
-def createCards(excludes: list) -> list:
+def create_cards(excludes: list) -> list:
 	cards = []
 
 	for value in VALUES:
@@ -48,7 +48,7 @@ def createCards(excludes: list) -> list:
 
 	return cards
 
-def sortCards(cards: list) -> list:
+def sort_cards(cards: list) -> list:
 	for i in range(len(cards)):
 		k = i
 		for j in range(i, len(cards)):
@@ -62,7 +62,7 @@ def sortCards(cards: list) -> list:
 	return cards
 
 # assume sorted
-def highestPair(cards: list, exclude: str = NONE) -> str:
+def highest_pair(cards: list, exclude: str = NONE) -> str:
 	highest = NONE
 
 	for i in range(len(cards) - 1):
@@ -72,7 +72,7 @@ def highestPair(cards: list, exclude: str = NONE) -> str:
 	return highest
 
 # assume sorted
-def highestTriple(cards: list, exclude: str = NONE) -> str:
+def highest_triple(cards: list, exclude: str = NONE) -> str:
 	highest = NONE
 
 	for i in range(len(cards) - 2):
@@ -82,7 +82,7 @@ def highestTriple(cards: list, exclude: str = NONE) -> str:
 	return highest
 
 # assume sorted
-def highestQuad(cards: list) -> str:
+def highest_quad(cards: list) -> str:
 	highest = NONE
 
 	for i in range(len(cards) - 3):
@@ -92,7 +92,7 @@ def highestQuad(cards: list) -> str:
 	return highest
 
 # assume sorted
-def highestFlush(cards: list) -> str:
+def highest_flush(cards: list) -> str:
 	highest = NONE
 
 	for suit in SUITS:
@@ -110,7 +110,7 @@ def highestFlush(cards: list) -> str:
 	return highest
 
 # assume sorted
-def highestStraight(cards: list) -> str:
+def highest_straight(cards: list) -> str:
 	highest = NONE
 
 	for i in range(len(cards)):
@@ -130,48 +130,48 @@ def highestStraight(cards: list) -> str:
 	return highest
 
 # dont assume sorted
-def bestHand(cards: list) -> str:
+def best_hand(cards: list) -> str:
 	if (len(cards) == 0):
 		return ''
 	
-	sorted = sortCards(cards)
+	sorted = sort_cards(cards)
 
-	highPair = highestPair(sorted)
-	lowPair = NONE
-	highTriple = NONE
-	if highPair != NONE:
-		highQuad = highestQuad(sorted)
-		if highQuad != NONE:
-			return 'Q' + highQuad
+	high_pair = highest_pair(sorted)
+	low_pair = NONE
+	high_triple = NONE
+	if high_pair != NONE:
+		high_quad = highest_quad(sorted)
+		if high_quad != NONE:
+			return 'Q' + high_quad
 
-		highTriple = highestTriple(sorted)
-		lowPair = highestPair(sorted, highTriple)
-		if highTriple != NONE and lowPair != NONE:
-			return 'H' + highTriple +  lowPair
+		high_triple = highest_triple(sorted)
+		low_pair = highest_pair(sorted, high_triple)
+		if high_triple != NONE and low_pair != NONE:
+			return 'H' + high_triple +  low_pair
 	
 	# ignore straight flush atm
-	highFlush = highestFlush(sorted)
-	if (highFlush != NONE):
-		return 'F' + highFlush
+	high_flush = highest_flush(sorted)
+	if (high_flush != NONE):
+		return 'F' + high_flush
 	
-	highStraight = highestStraight(sorted)
-	if (highStraight != NONE):
-		return 'S' + highStraight
+	high_straight = highest_straight(sorted)
+	if (high_straight != NONE):
+		return 'S' + high_straight
 
-	if (highTriple != NONE):
-		return 'T' + highTriple
+	if (high_triple != NONE):
+		return 'T' + high_triple
 
-	if (highPair != NONE):
-		lowPair = highestPair(sorted, highPair)
-		if (lowPair != NONE):
-			return 'D' + highPair + lowPair
+	if (high_pair != NONE):
+		low_pair = highest_pair(sorted, high_pair)
+		if (low_pair != NONE):
+			return 'D' + high_pair + low_pair
 
-		return 'P' + highPair
+		return 'P' + high_pair
 
 	return 'C' + sorted[len(sorted) - 1][0]
 
 # compare hands from bestHand()
-def compareHands(one: str, two: str) -> int:
+def compare_hands(one: str, two: str) -> int:
 	mapping = {
 		'C': 0,
 		'P': 1,
@@ -205,7 +205,7 @@ def MonteCarloProb(hole: list, middle: list, remaining: list) -> float:
 	below = 0
 	equiv = 0
 
-	for k in range(50):
+	for _ in range(50):
 		i = random.randrange(len(remaining))
 		j = random.randrange(len(remaining))
 		while (i == j):
@@ -234,25 +234,25 @@ def MonteCarloProb(hole: list, middle: list, remaining: list) -> float:
 			future.append(remaining[g])
 
 		pool = []
-		oppPool = []
+		opp_pool = []
 		for card in future:
 			pool.append(card)
-			oppPool.append(card)
+			opp_pool.append(card)
 
 		for i in range(2):
 			pool.append(hole[i])
-			oppPool.append(oppHole[i])
+			opp_pool.append(oppHole[i])
 
-		hand = bestHand(pool)
-		opp = bestHand(oppPool)
-		if compareHands(hand, opp) > 0:
+		hand = best_hand(pool)
+		opp = best_hand(opp_pool)
+		if compare_hands(hand, opp) > 0:
 			above += 1
-		elif compareHands(hand, opp) < 0:
+		elif compare_hands(hand, opp) < 0:
 			below += 1
 		else:
 			equiv += 1
 
 	wins = float(above + (equiv/2.0))
 	total = float(above + below + equiv)
-	print("Results: {} wins / {}. Win probability: {}.".format(wins, total, wins/total));
+	print(f"Results: {wins} wins / {total}. Win probability: {wins / total}.")
 	return wins/total
