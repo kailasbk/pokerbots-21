@@ -1,6 +1,3 @@
-'''
-Simple example pokerbot, written in Python.
-'''
 from skeleton.actions import FoldAction, CallAction, CheckAction, RaiseAction, AssignAction
 from skeleton.states import GameState, TerminalState, RoundState, BoardState
 from skeleton.states import NUM_ROUNDS, STARTING_STACK, BIG_BLIND, SMALL_BLIND, NUM_BOARDS
@@ -26,23 +23,23 @@ class Player(Bot):
 		self.cards = []
 		pass
 
-	def win_probability(self, board_state, i, active):
-		hand = board_state.hands[active];
-		deck = board_state.deck;
+	def win_probability(self, board_state: BoardState, active: int):
+		hand = board_state.hands[active]
+		deck = board_state.deck
 
 		pool = self.cards
 		middle = []
 
 		for card in deck:
 			if card != '':
-				pool.append(card);
-				middle.append(card);
+				pool.append(card)
+				middle.append(card)
 
-		remaining = createCards(pool);
+		remaining = createCards(pool)
 
-		return MonteCarloProb(hand, middle, remaining);
+		return MonteCarloProb(hand, middle, remaining)
 
-	def handle_new_round(self, game_state, round_state, active):
+	def handle_new_round(self, game_state: GameState, round_state: RoundState, active: int):
 		'''
 		Called when a new round starts. Called NUM_ROUNDS times.
 
@@ -56,11 +53,11 @@ class Player(Bot):
 		'''
 		self.cards = round_state.hands[active]
 		self.cards = sortCards(self.cards)
-		print("----------BEGIN ROUND {}--CLOCK:{}--------".format(game_state.round_num, game_state.game_clock))
+		print("----------BEGIN ROUND {}--CLOCK:{}----------".format(game_state.round_num, game_state.game_clock))
 
 		pass
 
-	def handle_round_over(self, game_state, terminal_state, active):
+	def handle_round_over(self, game_state: GameState, round_state: RoundState, active: int):
 		'''
 		Called when a round ends. Called NUM_ROUNDS times.
 
@@ -75,7 +72,7 @@ class Player(Bot):
 		print("----------END ROUND {}----CLOCK:{}----------".format(game_state.round_num, game_state.game_clock))
 		pass
 
-	def get_actions(self, game_state, round_state, active):
+	def get_actions(self, game_state: GameState, round_state: RoundState, active: int):
 		'''
 		Where the magic happens - your code should implement this function.
 		Called any time the engine needs a triplet of actions from your bot.
@@ -103,7 +100,7 @@ class Player(Bot):
 				continue_cost = board_state.pips[1-active] - board_state.pips[active]
 				pot = board_state.pot
 				potOdds = float(continue_cost) / (pot + continue_cost)
-				winProb = self.win_probability(board_state, i, active)
+				winProb = self.win_probability(board_state, active)
 				
 				# if they haven't raised and we can raise
 				if winProb >= .8 and RaiseAction in legal_actions[i] and stack != 0:

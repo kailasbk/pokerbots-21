@@ -37,7 +37,7 @@ ntoc = {
 	14: 'A',
 }
 
-def createCards(excludes):
+def createCards(excludes: list) -> list:
 	cards = []
 
 	for value in VALUES:
@@ -48,7 +48,7 @@ def createCards(excludes):
 
 	return cards
 
-def sortCards(cards):
+def sortCards(cards: list) -> list:
 	for i in range(len(cards)):
 		k = i
 		for j in range(i, len(cards)):
@@ -62,7 +62,7 @@ def sortCards(cards):
 	return cards
 
 # assume sorted
-def highestPair(cards, exclude = NONE):
+def highestPair(cards: list, exclude: str = NONE) -> str:
 	highest = NONE
 
 	for i in range(len(cards) - 1):
@@ -72,7 +72,7 @@ def highestPair(cards, exclude = NONE):
 	return highest
 
 # assume sorted
-def highestTriple(cards, exclude = NONE):
+def highestTriple(cards: list, exclude: str = NONE) -> str:
 	highest = NONE
 
 	for i in range(len(cards) - 2):
@@ -82,7 +82,7 @@ def highestTriple(cards, exclude = NONE):
 	return highest
 
 # assume sorted
-def highestQuad(cards):
+def highestQuad(cards: list) -> str:
 	highest = NONE
 
 	for i in range(len(cards) - 3):
@@ -92,7 +92,7 @@ def highestQuad(cards):
 	return highest
 
 # assume sorted
-def highestFlush(cards):
+def highestFlush(cards: list) -> str:
 	highest = NONE
 
 	for suit in SUITS:
@@ -110,7 +110,7 @@ def highestFlush(cards):
 	return highest
 
 # assume sorted
-def highestStraight(cards):
+def highestStraight(cards: list) -> str:
 	highest = NONE
 
 	for i in range(len(cards)):
@@ -130,7 +130,7 @@ def highestStraight(cards):
 	return highest
 
 # dont assume sorted
-def bestHand(cards):
+def bestHand(cards: list) -> str:
 	if (len(cards) == 0):
 		return ''
 	
@@ -171,7 +171,7 @@ def bestHand(cards):
 	return 'C' + sorted[len(sorted) - 1][0]
 
 # compare hands from bestHand()
-def compareHands(one, two):
+def compareHands(one: str, two: str) -> int:
 	mapping = {
 		'C': 0,
 		'P': 1,
@@ -200,7 +200,7 @@ def compareHands(one, two):
 
 
 # evaluate hand strength at anytime in the game using Monte-Carlo sim
-def MonteCarloProb(hole, middle, remaining):
+def MonteCarloProb(hole: list, middle: list, remaining: list) -> float:
 	above = 0
 	below = 0
 	equiv = 0
