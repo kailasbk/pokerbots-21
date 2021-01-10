@@ -123,9 +123,11 @@ class Player(Bot):
 				elif CallAction in legal_actions[i]:
 					# check on the board
 					if (winProb > potOdds):
+						print(f'Pot odds: {potOdds}')
 						print('Calling on board {}.'.format(i + 1))
 						my_actions[i] = CallAction()
 					else:
+						print(f'Pot odds: {potOdds}')
 						print('Folding on board {}.'.format(i + 1))
 						my_actions[i] = FoldAction()
 				# if its not worth raising, just check
