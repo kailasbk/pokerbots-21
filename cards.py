@@ -209,55 +209,40 @@ def compare_hands(one: str, two: str) -> int:
 
 
 # evaluate hand strength at anytime in the game using Monte-Carlo sim
-def monte_carlo_prob(hole_cards: list, shared_cards: list, remaining_cards: list) -> float:
+def monte_carlo_prob(hole_cards: list, shared_cards: list, remaining_cards: list = []) -> float:
 	ITERS = 50
 
+	if remaining_cards == []:
+		remaining_cards = all_cards_excluding(hole_cards + shared_cards)
+
+	length = len(remaining_cards)
+	print(f"Monte Carlo can see {len(shared_cards)} community cards")
 	above = 0 # hands that beat ours
 	below = 0 # hands that ours beats
 	equiv = 0 # hands that are equivalent to ours
 
 	for _ in range(ITERS):
-		i = random.randrange(len(remaining_cards))
-		j = random.randrange(len(remaining_cards))
+		i = random.randrange(length)
+		j = random.randrange(length)
 		while (i == j):
-			j = random.randrange(len(remaining_cards))
+			j = random.randrange(length)
 
-		opp_hole_cards = [remaining_cards[i], remaining_cards[j]]
+		# pick two distinct hole cards for opp
+		opp_hole_cards = [remaining_cards[i], remaining_cards[j]] 
 
 		# future_shared is the possible
-		future_shared = shared_cards
+		future_shared = shared_cards.copy()
 
-		if len(shared_cards) == 0:
-			hardcode = 'goes here'
+		already_chosen_indices = {i, j}
+		for _ in range(5 - len(shared_cards)):
+			index = random.randrange(length)
+			while index in already_chosen_indices:
+				index = random.randrange(length)
+			already_chosen_indices.add(index)
+			future_shared.append(remaining_cards[index])
 
-		elif len(shared_cards) == 3:
-			g = random.randrange(len(remaining_cards))
-			h = random.randrange(len(remaining_cards))
-			while g == i or g == j:
-				g = random.randrange(len(remaining_cards))
-			while h == i or h == j or h == g:
-				h = random.randrange(len(remaining_cards))
-			
-			future_shared.append(remaining_cards[g])
-			future_shared.append(remaining_cards[h])
-
-		elif len(shared_cards) == 4:
-			g = random.randrange(len(remaining_cards))
-			while g == i or g == j:
-				g = random.randrange(len(remaining_cards))
-			
-			future_shared.append(remaining_cards[g])
-
-		# pool is the list of cards that could be used in a hand (up to 7)
-		pool = []
-		opp_pool = []
-		for card in future_shared:
-			pool.append(card)
-			opp_pool.append(card)
-
-		for i in range(2):
-			pool.append(hole_cards[i])
-			opp_pool.append(opp_hole_cards[i])
+		pool = future_shared + hole_cards
+		opp_pool = future_shared + opp_hole_cards
 
 		hand = best_hand(pool)
 		opp_hand = best_hand(opp_pool)
@@ -273,5 +258,5 @@ def monte_carlo_prob(hole_cards: list, shared_cards: list, remaining_cards: list
 	assert(above + below + equiv == ITERS)
 	total = float(above + below + equiv)
 
-	print(f"Results: {wins} wins / {total}. Win probability: {wins / total}.")
+	print(f"Results for my hole_cards {hole_cards} with shared_cards {shared_cards} : {wins} wins / {total}. Win probability: {wins / total}.")
 	return wins/total

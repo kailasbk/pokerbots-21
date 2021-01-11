@@ -73,10 +73,12 @@ class Player(Bot):
 		seen_cards = self.cards # so far, the 2 * NUM_BOARDS cards in our holes
 		shared_cards = []
 
+		print(f"These are the community cards from board_state.deck: {board_state.deck}")
 		for card in board_state.deck: # all community cards
 			if card != '': # community card has been revealed
 				seen_cards.append(card) 
 				shared_cards.append(card)
+		print(f"These are the shared cards (nonempty cards from board_state.deck): {shared_cards}")
 
 		remaining_cards = all_cards_excluding(seen_cards)
 
