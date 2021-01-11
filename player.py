@@ -4,6 +4,7 @@ from skeleton.states import NUM_ROUNDS, STARTING_STACK, BIG_BLIND, SMALL_BLIND, 
 from skeleton.bot import Bot
 from skeleton.runner import parse_args, run_bot
 from cards import *
+from typing import List
 
 class Player(Bot):
 	'''
@@ -22,6 +23,49 @@ class Player(Bot):
 		'''
 		self.cards = []
 		pass
+
+	def allocate_cards(self):
+		"""Allocates the six hole cards by pair-hunting and sorting the 
+		remaining singles
+
+		Args:
+			None.
+
+		Returns:
+			A list of NUM_BOARDS pairs of cards, in order of singles of 
+			increasing rank, then pairs of increasing rank
+		"""
+		cards = sort_cards(self.cards)
+		assert(len(cards) == 2 * NUM_BOARDS)
+
+		ranks = {}
+		for card in cards:
+			if card[0] in ranks:
+				ranks[card[0]] += [card]
+			else:
+				ranks[card[0]] = [card]
+		
+		pairs = []
+		singles = []
+		for rank in ranks:
+			while len(ranks[rank]) >= 2:
+				pairs.append([ranks[rank].pop(), ranks[rank].pop()])
+			assert(len(ranks[rank]) == 0 or len(ranks[rank]) == 1)
+
+			singles += ranks[rank]
+			ranks[rank].clear()
+			assert(len(ranks[rank]) == 0)
+
+		assert(len(singles) % 2 == 0)
+		pairs_of_singles = []
+		for i in range(len(singles) // 2):
+			pairs_of_singles.append([singles[2 * i], singles[2 * i + 1]])
+
+		assert(len(pairs_of_singles) + len(pairs) == NUM_BOARDS)
+		return pairs_of_singles + pairs
+
+		# naive: sequentially allocated cards
+		# return [[self.cards[2 * i], self.cards[2 * i + 1]] for i in range(NUM_BOARDS)]
 
 	def win_probability(self, board_state: BoardState, active: int):
 		hand = board_state.hands[active]
@@ -52,9 +96,11 @@ class Player(Bot):
 		Nothing.
 		'''
 		self.cards = round_state.hands[active]
-		self.cards = sort_cards(self.cards)
 		print(f"----------BEGIN ROUND {game_state.round_num}--CLOCK:{game_state.game_clock}----------")
+		print(f"My cards are {self.cards}")
 
+		self.card_allocation = self.allocate_cards()
+		print(f"My card allocation is {self.card_allocation}")
 		pass
 
 	def handle_round_over(self, game_state: GameState, round_state: RoundState, active: int):
@@ -88,10 +134,12 @@ class Player(Bot):
 		legal_actions = round_state.legal_actions()
 		my_actions = [None] * NUM_BOARDS
 		stack = round_state.stacks[active]
+
+		# cards = self.allocate_cards()
+
 		for i in range(NUM_BOARDS):
 			if AssignAction in legal_actions[i]:
-				cards = [self.cards[2*i], self.cards[2*i+1]]
-				my_actions[i] = AssignAction(cards)
+				my_actions[i] = AssignAction(self.card_allocation[i])
 
 			else:
 				board_state = round_state.board_states[i]
@@ -102,11 +150,11 @@ class Player(Bot):
 
 				continue_cost = board_state.pips[1-active] - board_state.pips[active]
 				pot = board_state.pot
-				potOdds = float(continue_cost) / (pot + continue_cost)
-				winProb = self.win_probability(board_state, active)
+				pot_odds = float(continue_cost) / (pot + continue_cost)
+				win_prob = self.win_probability(board_state, active)
 				
 				# if they haven't raised and we can raise
-				if winProb >= .8 and RaiseAction in legal_actions[i] and stack != 0:
+				if win_prob >= .8 and RaiseAction in legal_actions[i] and stack != 0:
 					increase = (3 * BIG_BLIND)
 					amount = board_state.pips[1-active] + increase
 					# if can bet normally
@@ -126,12 +174,12 @@ class Player(Bot):
 				# if opponent just raised (call and fold, maybe raise, are legal)
 				elif CallAction in legal_actions[i]:
 					# check on the board
-					if (winProb > potOdds):
-						print(f'Pot odds: {potOdds}')
+					if (win_prob > pot_odds):
+						print(f'Pot odds: {pot_odds}')
 						print(f'Calling on board {i + 1}.')
 						my_actions[i] = CallAction()
 					else:
-						print(f'Pot odds: {potOdds}')
+						print(f'Pot odds: {pot_odds}')
 						print(f'Folding on board {i + 1}.')
 						my_actions[i] = FoldAction()
 
@@ -140,7 +188,7 @@ class Player(Bot):
 					# else check on the board
 					print(f'Checking on board {i + 1}.')
 					my_actions[i] = CheckAction()
-
+		print()
 		return my_actions
 
 if __name__ == '__main__':

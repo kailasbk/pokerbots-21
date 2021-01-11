@@ -267,6 +267,6 @@ def monte_carlo_prob(hole: list, middle: list, remaining: list) -> float:
 
 	assert(above + below + equiv == ITERS)
 	total = float(above + below + equiv)
-	
+
 	print(f"Results: {wins} wins / {total}. Win probability: {wins / total}.")
 	return wins/total
