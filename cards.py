@@ -37,7 +37,16 @@ ntoc = {
 	14: 'A',
 }
 
-def create_cards(excludes: list) -> list:
+def create_cards(excludes: list = []) -> list:
+	"""
+	Lists all cards not in `excludes`
+
+	Args:
+		excludes: a list of strings for cards not to include.
+
+	Returns:
+		A list of strings corresponding to all other cards in the deck.
+	"""
 	cards = []
 
 	for value in VALUES:
@@ -183,7 +192,7 @@ def compare_hands(one: str, two: str) -> int:
 		'Q': 7,
 	}
 
-	if one[0] == two[0]:
+	if one[0] == two[0]: # same type of hand
 		for i in range(1, len(one)):
 			if cton[one[i]] > cton[two[i]]:
 				return 1
@@ -200,12 +209,14 @@ def compare_hands(one: str, two: str) -> int:
 
 
 # evaluate hand strength at anytime in the game using Monte-Carlo sim
-def MonteCarloProb(hole: list, middle: list, remaining: list) -> float:
-	above = 0
-	below = 0
-	equiv = 0
+def monte_carlo_prob(hole: list, middle: list, remaining: list) -> float:
+	ITERS = 50
 
-	for _ in range(50):
+	above = 0 # hands that beat ours
+	below = 0 # hands that ours beats
+	equiv = 0 # hands that are equivalent to ours
+
+	for _ in range(ITERS):
 		i = random.randrange(len(remaining))
 		j = random.randrange(len(remaining))
 		while (i == j):
@@ -252,7 +263,10 @@ def MonteCarloProb(hole: list, middle: list, remaining: list) -> float:
 		else:
 			equiv += 1
 
-	wins = float(above + (equiv/2.0))
+	wins = float(above + (equiv / 2.0))
+
+	assert(above + below + equiv == ITERS)
 	total = float(above + below + equiv)
+	
 	print(f"Results: {wins} wins / {total}. Win probability: {wins / total}.")
 	return wins/total

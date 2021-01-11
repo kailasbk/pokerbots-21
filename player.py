@@ -37,7 +37,7 @@ class Player(Bot):
 
 		remaining = create_cards(pool)
 
-		return MonteCarloProb(hand, middle, remaining)
+		return monte_carlo_prob(hand, middle, remaining)
 
 	def handle_new_round(self, game_state: GameState, round_state: RoundState, active: int):
 		'''
@@ -92,11 +92,14 @@ class Player(Bot):
 			if AssignAction in legal_actions[i]:
 				cards = [self.cards[2*i], self.cards[2*i+1]]
 				my_actions[i] = AssignAction(cards)
+
 			else:
 				board_state = round_state.board_states[i]
+
 				if isinstance(board_state, TerminalState):
 					my_actions[i] = CheckAction()
 					continue
+
 				continue_cost = board_state.pips[1-active] - board_state.pips[active]
 				pot = board_state.pot
 				potOdds = float(continue_cost) / (pot + continue_cost)
@@ -119,6 +122,7 @@ class Player(Bot):
 						elif CheckAction in legal_actions[i]:
 							print(f'Checking on board {i + 1}.')
 							my_actions[i] = CheckAction()
+
 				# if opponent just raised (call and fold, maybe raise, are legal)
 				elif CallAction in legal_actions[i]:
 					# check on the board
@@ -130,11 +134,13 @@ class Player(Bot):
 						print(f'Pot odds: {potOdds}')
 						print(f'Folding on board {i + 1}.')
 						my_actions[i] = FoldAction()
+
 				# if its not worth raising, just check
 				elif CheckAction in legal_actions[i]:
 					# else check on the board
 					print(f'Checking on board {i + 1}.')
 					my_actions[i] = CheckAction()
+
 		return my_actions
 
 if __name__ == '__main__':
