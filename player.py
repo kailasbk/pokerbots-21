@@ -68,20 +68,19 @@ class Player(Bot):
 		# return [[self.cards[2 * i], self.cards[2 * i + 1]] for i in range(NUM_BOARDS)]
 
 	def win_probability(self, board_state: BoardState, active: int):
-		hand = board_state.hands[active]
-		deck = board_state.deck
+		hole_cards = board_state.hands[active]
 
-		pool = self.cards
-		middle = []
+		seen_cards = self.cards
+		shared_cards = []
 
-		for card in deck:
+		for card in board_state.deck:
 			if card != '':
-				pool.append(card)
-				middle.append(card)
+				seen_cards.append(card)
+				shared_cards.append(card)
 
-		remaining = create_cards(pool)
+		remaining_cards = create_cards(seen_cards)
 
-		return monte_carlo_prob(hand, middle, remaining)
+		return monte_carlo_prob(hole_cards, shared_cards, remaining_cards)
 
 	def handle_new_round(self, game_state: GameState, round_state: RoundState, active: int):
 		'''
@@ -103,7 +102,7 @@ class Player(Bot):
 		print(f"My card allocation is {self.card_allocation}")
 		pass
 
-	def handle_round_over(self, game_state: GameState, round_state: RoundState, active: int):
+	def handle_round_over(self, game_state: GameState, terminal_state: TerminalState, active: int):
 		'''
 		Called when a round ends. Called NUM_ROUNDS times.
 

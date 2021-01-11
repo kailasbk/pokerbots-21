@@ -209,7 +209,7 @@ def compare_hands(one: str, two: str) -> int:
 
 
 # evaluate hand strength at anytime in the game using Monte-Carlo sim
-def monte_carlo_prob(hole: list, middle: list, remaining: list) -> float:
+def monte_carlo_prob(hole_cards: list, shared_cards: list, remaining_cards: list) -> float:
 	ITERS = 50
 
 	above = 0 # hands that beat ours
@@ -217,48 +217,53 @@ def monte_carlo_prob(hole: list, middle: list, remaining: list) -> float:
 	equiv = 0 # hands that are equivalent to ours
 
 	for _ in range(ITERS):
-		i = random.randrange(len(remaining))
-		j = random.randrange(len(remaining))
+		i = random.randrange(len(remaining_cards))
+		j = random.randrange(len(remaining_cards))
 		while (i == j):
-			j = random.randrange(len(remaining))
+			j = random.randrange(len(remaining_cards))
 
-		oppHole = [remaining[i], remaining[j]]
+		opp_hole_cards = [remaining_cards[i], remaining_cards[j]]
 
-		future = middle
+		# future_shared is the possible
+		future_shared = shared_cards
 
-		if len(middle) == 3:
-			g = random.randrange(len(remaining))
-			h = random.randrange(len(remaining))
+		if len(shared_cards) == 0:
+			hardcode = 'goes here'
+
+		elif len(shared_cards) == 3:
+			g = random.randrange(len(remaining_cards))
+			h = random.randrange(len(remaining_cards))
 			while g == i or g == j:
-				g = random.randrange(len(remaining))
+				g = random.randrange(len(remaining_cards))
 			while h == i or h == j or h == g:
-				h = random.randrange(len(remaining))
+				h = random.randrange(len(remaining_cards))
 			
-			future.append(remaining[g])
-			future.append(remaining[h])
+			future_shared.append(remaining_cards[g])
+			future_shared.append(remaining_cards[h])
 
-		if len(middle) == 4:
-			g = random.randrange(len(remaining))
+		elif len(shared_cards) == 4:
+			g = random.randrange(len(remaining_cards))
 			while g == i or g == j:
-				g = random.randrange(len(remaining))
+				g = random.randrange(len(remaining_cards))
 			
-			future.append(remaining[g])
+			future_shared.append(remaining_cards[g])
 
+		# pool is the list of cards that could be used in a hand (up to 7)
 		pool = []
 		opp_pool = []
-		for card in future:
+		for card in future_shared:
 			pool.append(card)
 			opp_pool.append(card)
 
 		for i in range(2):
-			pool.append(hole[i])
-			opp_pool.append(oppHole[i])
+			pool.append(hole_cards[i])
+			opp_pool.append(opp_hole_cards[i])
 
 		hand = best_hand(pool)
-		opp = best_hand(opp_pool)
-		if compare_hands(hand, opp) > 0:
+		opp_hand = best_hand(opp_pool)
+		if compare_hands(hand, opp_hand) > 0:
 			above += 1
-		elif compare_hands(hand, opp) < 0:
+		elif compare_hands(hand, opp_hand) < 0:
 			below += 1
 		else:
 			equiv += 1
