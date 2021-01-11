@@ -154,11 +154,13 @@ class Player(Bot):
 				win_prob = self.win_probability(board_state, active)
 				
 				# if they haven't raised and we can raise
-				if win_prob >= .8 and RaiseAction in legal_actions[i] and stack != 0:
-					increase = (3 * BIG_BLIND)
+				if win_prob >= .7 and RaiseAction in legal_actions[i] and stack != 0:
+					# increase = (3 * BIG_BLIND)
+					increase = max((3 * BIG_BLIND), int(0.5 * pot))
+					# increase = int(0.5 * pot)
 					amount = board_state.pips[1-active] + increase
 					# if can bet normally
-					if stack > 3 * BIG_BLIND + continue_cost and board_state.pips[active] < 30:
+					if stack > increase + continue_cost and board_state.pips[active] < 30:
 						print(f'Betting/raising on board {i + 1} to {amount}.')
 						my_actions[i] = RaiseAction(amount)
 						stack -= amount
