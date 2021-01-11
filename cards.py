@@ -37,7 +37,7 @@ ntoc = {
 	14: 'A',
 }
 
-def create_cards(excludes: list = []) -> list:
+def all_cards_excluding(excludes: list = []) -> list:
 	"""
 	Lists all cards not in `excludes`
 

@@ -68,17 +68,17 @@ class Player(Bot):
 		# return [[self.cards[2 * i], self.cards[2 * i + 1]] for i in range(NUM_BOARDS)]
 
 	def win_probability(self, board_state: BoardState, active: int):
-		hole_cards = board_state.hands[active]
+		hole_cards = board_state.hands[active] # the two hole cards for this board
 
-		seen_cards = self.cards
+		seen_cards = self.cards # so far, the 2 * NUM_BOARDS cards in our holes
 		shared_cards = []
 
-		for card in board_state.deck:
-			if card != '':
-				seen_cards.append(card)
+		for card in board_state.deck: # all community cards
+			if card != '': # community card has been revealed
+				seen_cards.append(card) 
 				shared_cards.append(card)
 
-		remaining_cards = create_cards(seen_cards)
+		remaining_cards = all_cards_excluding(seen_cards)
 
 		return monte_carlo_prob(hole_cards, shared_cards, remaining_cards)
 
