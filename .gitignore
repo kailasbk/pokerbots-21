@@ -3,4 +3,5 @@
 /.vscode
 *.txt
 *.pyc
+**/__pycache__
 *.sh

@@ -73,12 +73,12 @@ class Player(Bot):
 		seen_cards = self.cards # so far, the 2 * NUM_BOARDS cards in our holes
 		shared_cards = []
 
-		print(f"These are the community cards from board_state.deck: {board_state.deck}")
+		# print(f"These are the community cards from board_state.deck: {board_state.deck}")
 		for card in board_state.deck: # all community cards
 			if card != '': # community card has been revealed
 				seen_cards.append(card) 
 				shared_cards.append(card)
-		print(f"These are the shared cards (nonempty cards from board_state.deck): {shared_cards}")
+		# print(f"These are the shared cards (nonempty cards from board_state.deck): {shared_cards}")
 
 		remaining_cards = all_cards_excluding(seen_cards)
 
@@ -162,34 +162,32 @@ class Player(Bot):
 					amount = board_state.pips[1-active] + increase
 					# if can bet normally
 					if stack > increase + continue_cost and board_state.pips[active] < 30:
-						print(f'Betting/raising on board {i + 1} to {amount}.')
+						print(f'Bet/raise board {i + 1} to {amount}.')
 						my_actions[i] = RaiseAction(amount)
 						stack -= amount
 					# otherwise (don't do all in rn)
 					else:
 						if CallAction in legal_actions[i]:
-							print(f'Calling on board {i + 1}.')
+							print(f'Call board {i + 1} w/ {round(pot_odds, 2)} odds.')
 							my_actions[i] = CallAction()
 						elif CheckAction in legal_actions[i]:
-							print(f'Checking on board {i + 1}.')
+							print(f'Check board {i + 1}.')
 							my_actions[i] = CheckAction()
 
 				# if opponent just raised (call and fold, maybe raise, are legal)
 				elif CallAction in legal_actions[i]:
 					# check on the board
 					if (win_prob > pot_odds):
-						print(f'Pot odds: {pot_odds}')
-						print(f'Calling on board {i + 1}.')
+						print(f'Call board {i + 1} w/ {round(pot_odds, 2)} odds.')
 						my_actions[i] = CallAction()
 					else:
-						print(f'Pot odds: {pot_odds}')
-						print(f'Folding on board {i + 1}.')
+						print(f'Fold board {i + 1}')
 						my_actions[i] = FoldAction()
 
 				# if its not worth raising, just check
 				elif CheckAction in legal_actions[i]:
 					# else check on the board
-					print(f'Checking on board {i + 1}.')
+					print(f'Check board {i + 1}.')
 					my_actions[i] = CheckAction()
 		print()
 		return my_actions
