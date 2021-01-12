@@ -1,4 +1,4 @@
-import random
+import random, eval7, csv
 
 VALUES = {'2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'}
 SUITS = {'h', 'd', 's', 'c'}
@@ -36,6 +36,13 @@ ntoc = {
 	13: 'K',
 	14: 'A',
 }
+
+hole_strengths = {}
+
+file = open('hole_strengths.csv', 'r')
+reader = csv.DictReader(file)
+for row in reader:
+	hole_strengths[row['hole cards']] = row['strength']
 
 def all_cards_excluding(excludes: list = []) -> list:
 	"""
@@ -222,9 +229,7 @@ def draw_random_cards(cards: list, num: int):
 	return drawn_cards
 
 # evaluate hand strength at anytime in the game using Monte-Carlo sim
-def monte_carlo_prob(hole_cards: list, shared_cards: list, remaining_cards: list = []) -> float:
-	ITERS = 50
-
+def monte_carlo_prob(hole_cards: list, shared_cards: list, remaining_cards: list = [], iters: int = 200) -> float:
 	if remaining_cards == []:
 		remaining_cards = all_cards_excluding(hole_cards + shared_cards)
 
@@ -232,33 +237,43 @@ def monte_carlo_prob(hole_cards: list, shared_cards: list, remaining_cards: list
 	above = 0 # hands that beat ours
 	below = 0 # hands that ours beats
 	equiv = 0 # hands that are equivalent to ours
+	prob = 0
 
-	for _ in range(ITERS):
-		drawn_cards = draw_random_cards(remaining_cards, 7 - len(shared_cards))
-
-		# future_shared is the possible
-		future_shared = shared_cards + drawn_cards[2:]
-
-		pool = future_shared + hole_cards
-		opp_pool = future_shared + drawn_cards[:2]
-
-		hand = best_hand(pool)
-		opp_hand = best_hand(opp_pool)
-		if compare_hands(hand, opp_hand) > 0:
-			above += 1
-		elif compare_hands(hand, opp_hand) < 0:
-			below += 1
+	if len(shared_cards) == 0:
+		sorted = sort_cards(hole_cards)
+		if hole_cards[0][1] == hole_cards[1][1]:
+			prob = float(hole_strengths[str(sorted[1][0] + sorted[0][0] + 's')])
 		else:
-			equiv += 1
+			prob = float(hole_strengths[str(sorted[1][0] + sorted[0][0] + 'o')])
 
-	wins = float(above + (equiv / 2.0))
+	else:
+		for _ in range(iters):
+			drawn_cards = draw_random_cards(remaining_cards, 7 - len(shared_cards))
 
-	assert(above + below + equiv == ITERS)
-	total = float(above + below + equiv)
+			# future_shared is the possible
+			future_shared = shared_cards + drawn_cards[2:]
+
+			pool = future_shared + hole_cards
+			opp_pool = future_shared + drawn_cards[:2]
+
+			hand = eval7.evaluate([eval7.Card(card) for card in pool])
+			opp_hand = eval7.evaluate([eval7.Card(card) for card in opp_pool])
+			if hand > opp_hand:
+				above += 1
+			elif hand < opp_hand:
+				below += 1
+			else:
+				equiv += 1
+
+		wins = float(above + (equiv / 2.0))
+
+		assert(above + below + equiv == iters)
+		total = float(above + below + equiv)
+		prob = wins / total
 
 	if (len(shared_cards) == 0):
-		print(f"Prob w/ [{' '.join(hole_cards)}]: {round(wins / total, 2)}.")
+		print(f"[{' '.join(hole_cards)}]: {round(prob, 2)}.")
 	else:
-		print(f"Prob w/ [{' '.join(hole_cards)}] on [{' '.join(shared_cards)}]: {round(wins / total, 2)}.")
+		print(f"[{' '.join(hole_cards)}] on [{' '.join(shared_cards)}]: {round(prob, 2)}.")
 
-	return wins/total
+	return prob
