@@ -1,4 +1,5 @@
 import random
+import eval7
 
 VALUES = {'2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'}
 SUITS = {'h', 'd', 's', 'c'}
@@ -222,43 +223,72 @@ def draw_random_cards(cards: list, num: int):
 	return drawn_cards
 
 # evaluate hand strength at anytime in the game using Monte-Carlo sim
-def monte_carlo_prob(hole_cards: list, shared_cards: list, remaining_cards: list = []) -> float:
-	ITERS = 50
+def monte_carlo_prob(hole_cards: list, shared_cards: list = [], remaining_cards: list = [], iters = 50) -> float:
+	ITERS = iters
 
 	if remaining_cards == []:
 		remaining_cards = all_cards_excluding(hole_cards + shared_cards)
+		# print(remaining_cards)
 
 	# print(f"Monte Carlo can see {len(shared_cards)} community cards")
 	above = 0 # hands that beat ours
 	below = 0 # hands that ours beats
 	equiv = 0 # hands that are equivalent to ours
+	score = 0.0
 
 	for _ in range(ITERS):
 		drawn_cards = draw_random_cards(remaining_cards, 7 - len(shared_cards))
-
+		# drawn_cards = random.sample(remaining_cards, 7 - len(shared_cards))
 		# future_shared is the possible
 		future_shared = shared_cards + drawn_cards[2:]
 
 		pool = future_shared + hole_cards
 		opp_pool = future_shared + drawn_cards[:2]
 
-		hand = best_hand(pool)
-		opp_hand = best_hand(opp_pool)
-		if compare_hands(hand, opp_hand) > 0:
+		# print(f"{hole_cards} vs. {drawn_cards[:2]}")
+
+		pool_cards = [eval7.Card(card) for card in pool]
+		opp_pool_cards = [eval7.Card(card) for card in opp_pool]
+		# print(f"With shared cards: {pool} vs. {opp_pool}")
+
+		# hand = best_hand(pool)
+		# opp_hand = best_hand(opp_pool)
+
+		# if compare_hands(hand, opp_hand) > 0:
+		# 	above += 1
+		# elif compare_hands(hand, opp_hand) < 0:
+		# 	below += 1
+		# else:
+		# 	equiv += 1
+		
+		our_hand_value = eval7.evaluate(pool_cards)
+		opp_hand_value = eval7.evaluate(opp_pool_cards)
+		# print(our_hand_value, opp_hand_value)
+		# print(eval7.handtype(our_hand_value), eval7.handtype(opp_hand_value))
+		if our_hand_value > opp_hand_value:
 			above += 1
-		elif compare_hands(hand, opp_hand) < 0:
+			score += 1
+		elif our_hand_value < opp_hand_value:
 			below += 1
+			score += 0
 		else:
 			equiv += 1
+			score += 0.5
 
-	wins = float(above + (equiv / 2.0))
+	# wins = float(above + (equiv / 2.0))
 
-	assert(above + below + equiv == ITERS)
-	total = float(above + below + equiv)
+	# assert(above + below + equiv == ITERS)
+	# total = float(above + below + equiv)
+	# hand_strength = wins / total
+	hand_strength = score / ITERS
+
+	# print(above, equiv, below)
+	# print(score)
+	# print(hand_strength_old, hand_strength)
 
 	if (len(shared_cards) == 0):
-		print(f"Prob w/ [{' '.join(hole_cards)}]: {round(wins / total, 2)}.")
+		print(f"Prob w/ [{' '.join(hole_cards)}]: {round(hand_strength, 3)}.")
 	else:
-		print(f"Prob w/ [{' '.join(hole_cards)}] on [{' '.join(shared_cards)}]: {round(wins / total, 2)}.")
+		print(f"Prob w/ [{' '.join(hole_cards)}] on [{' '.join(shared_cards)}]: {round(hand_strength, 3)}.")
 
-	return wins/total
+	return hand_strength
