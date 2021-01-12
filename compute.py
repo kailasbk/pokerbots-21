@@ -45,12 +45,12 @@ holes = {}
 # calculate all suited
 for i in range(len(diamonds)):
     for j in range(i + 1, len(diamonds)):
-        holes[str(diamonds[i][0] + diamonds[j][0] + 's')] = monte_carlo_prob([diamonds[i], diamonds[j]], [], iters=100000)
+        holes[str(diamonds[i][0] + diamonds[j][0] + 's')] = monte_carlo_prob([diamonds[i], diamonds[j]], [], [], iters=100000)
 
 # calculate all not suited
 for i in range(len(diamonds)):
     for j in range(i, len(hearts)):
-        holes[str(diamonds[i][0] + hearts[j][0] + 'o')] = monte_carlo_prob([diamonds[i], diamonds[j]], [], iters=100000)
+        holes[str(diamonds[i][0] + hearts[j][0] + 'o')] = monte_carlo_prob([diamonds[i], hearts[j]], [], [], iters=100000)
 
 file = open('hole_strengths.csv', 'w')
 writer = csv.DictWriter(file, ['hole cards', 'strength'])
