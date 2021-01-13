@@ -96,7 +96,7 @@ class Player(Bot):
 		Nothing.
 		'''
 		self.cards = round_state.hands[active]
-		print(f"----------BEGIN ROUND {game_state.round_num}--CLOCK:{game_state.game_clock}----------")
+		print(f"---BEGIN ROUND {game_state.round_num}--CLOCK:{round(game_state.game_clock, 2)}---")
 		print(f"My cards are {self.cards}")
 
 		self.card_allocation = self.allocate_cards()
@@ -115,7 +115,13 @@ class Player(Bot):
 		Returns:
 		Nothing.
 		'''
-		print(f"----------END ROUND {game_state.round_num}----CLOCK:{game_state.game_clock}----------")
+		previous_state: RoundState = terminal_state.previous_state
+		for i in range(3):
+			opp_hand = previous_state.board_states[i].previous_state.hands[1-active]
+			if opp_hand != ['', '']:
+				print(f"Shown [{' '.join(opp_hand)}] on board {i + 1}")
+		
+		print(f"---END ROUND {game_state.round_num}----CLOCK:{round(game_state.game_clock, 2)}---")
 		pass
 
 	def get_actions(self, game_state: GameState, round_state: RoundState, active: int):
@@ -149,7 +155,7 @@ class Player(Bot):
 					continue
 
 				continue_cost = board_state.pips[1-active] - board_state.pips[active]
-				pot = board_state.pot
+				pot = board_state.pot + board_state.pips[1-active] + board_state.pips[active]
 				pot_odds = float(continue_cost) / (pot + continue_cost)
 				win_prob = self.win_probability(board_state, active)
 				
@@ -176,7 +182,7 @@ class Player(Bot):
 				# if opponent just raised (call and fold, maybe raise, are legal)
 				elif CallAction in legal_actions[i]:
 					# check on the board
-					if (win_prob > pot_odds):
+					if (win_prob - .5 > pot_odds):
 						print(f'Call board {i + 1} w/ {round(pot_odds, 2)} odds.')
 						my_actions[i] = CallAction()
 					else:
