@@ -144,56 +144,65 @@ class Player(Bot):
 		# cards = self.allocate_cards()
 
 		for i in range(NUM_BOARDS):
-			if AssignAction in legal_actions[i]:
+			board_state = round_state.board_states[i]
+
+			if isinstance(board_state, TerminalState):
+				my_actions[i] = CheckAction()
+				continue
+
+			elif AssignAction in legal_actions[i]:
 				my_actions[i] = AssignAction(self.card_allocation[i])
 
 			else:
-				board_state = round_state.board_states[i]
-
-				if isinstance(board_state, TerminalState):
+				if board_state.settled:
 					my_actions[i] = CheckAction()
 					continue
-
-				continue_cost = board_state.pips[1-active] - board_state.pips[active]
-				pot = board_state.pot + board_state.pips[1-active] + board_state.pips[active]
+				
+				pips = board_state.pips[active]
+				opp_pips = board_state.pips[1-active]
+				continue_cost = opp_pips - pips
+				pot = board_state.pot + opp_pips + pips
 				pot_odds = float(continue_cost) / (pot + continue_cost)
 				win_prob = self.win_probability(board_state, active)
-				
-				# if they haven't raised and we can raise
-				if win_prob >= .7 and RaiseAction in legal_actions[i] and stack != 0:
-					# increase = (3 * BIG_BLIND)
-					increase = max((3 * BIG_BLIND), int(0.5 * pot))
-					# increase = int(0.5 * pot)
-					amount = board_state.pips[1-active] + increase
-					# if can bet normally
-					if stack > increase + continue_cost and board_state.pips[active] < 30:
-						print(f'Bet/raise board {i + 1} to {amount}.')
-						my_actions[i] = RaiseAction(amount)
-						stack -= amount
-					# otherwise (don't do all in rn)
-					else:
-						if CallAction in legal_actions[i]:
-							print(f'Call board {i + 1} w/ {round(pot_odds, 2)} odds.')
-							my_actions[i] = CallAction()
-						elif CheckAction in legal_actions[i]:
+
+				if continue_cost == 0:
+					if win_prob >= .7 and RaiseAction in legal_actions[i] and stack != 0:
+						# increase = (3 * BIG_BLIND)
+						increase = max((3 * BIG_BLIND), int(0.5 * pot))
+						# increase = int(0.5 * pot)
+						amount = board_state.pips[1-active] + increase
+						# if can bet normally
+						if stack > increase + continue_cost:
+							print(f'Bet/raise board {i + 1} to {amount}.')
+							my_actions[i] = RaiseAction(amount)
+							stack -= amount
+						# otherwise (don't do all in rn)
+						else:
 							print(f'Check board {i + 1}.')
 							my_actions[i] = CheckAction()
+						# if its not worth raising, just check
+					else:
+						# else check on the board
+						print(f'Check board {i + 1}.')
+						my_actions[i] = CheckAction()	
+				
+				else:
+					if pips == 1:
+						if win_prob > pot_odds:
+							print(f'Call board {i + 1} w/ {round(pot_odds, 2)} odds.')
+							my_actions[i] = CallAction()
+						else:
+							print(f'Fold board {i + 1}')
+							my_actions[i] = FoldAction()
 
-				# if opponent just raised (call and fold, maybe raise, are legal)
-				elif CallAction in legal_actions[i]:
-					# check on the board
-					if (win_prob - .5 > pot_odds):
+					elif win_prob - .5 > pot_odds or win_prob > .95 - (.05 * (5 - round_state.street)):
 						print(f'Call board {i + 1} w/ {round(pot_odds, 2)} odds.')
 						my_actions[i] = CallAction()
+						
 					else:
 						print(f'Fold board {i + 1}')
 						my_actions[i] = FoldAction()
 
-				# if its not worth raising, just check
-				elif CheckAction in legal_actions[i]:
-					# else check on the board
-					print(f'Check board {i + 1}.')
-					my_actions[i] = CheckAction()
 		print()
 		return my_actions
 
