@@ -1,12 +1,10 @@
-from ..cards import all_cards_excluding, draw_random_cards, monte_carlo_prob
+from cards import all_cards_excluding, draw_random_cards, monte_carlo_prob
 import csv
 import eval7
 
-# evaluate hand strength at anytime in the game using Monte-Carlo sim
 def win_rate(hole_cards: list, opp_hole_cards:list, shared_cards: list, iters: int = 500) -> float:
 	remaining_cards = all_cards_excluding(hole_cards + opp_hole_cards + shared_cards)
 
-	# print(f"Monte Carlo can see {len(shared_cards)} community cards")
 	above = 0 # hands that beat ours
 	below = 0 # hands that ours beats
 	equiv = 0 # hands that are equivalent to ours

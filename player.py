@@ -167,9 +167,13 @@ class Player(Bot):
 
 				if continue_cost == 0:
 					if win_prob >= .7 and RaiseAction in legal_actions[i] and stack != 0:
-						# increase = (3 * BIG_BLIND)
-						increase = max((3 * BIG_BLIND), int(0.5 * pot))
-						# increase = int(0.5 * pot)
+						if win_prob >= 0.9:
+							increase = max((3 * BIG_BLIND), int(0.75 * pot))
+						else:
+							increase = max((3 * BIG_BLIND), int(0.5 * pot))
+							
+						# increase = max((3 * BIG_BLIND), int(0.5 * pot))
+
 						amount = board_state.pips[1-active] + increase
 						# if can bet normally
 						if stack > increase + continue_cost:
@@ -187,7 +191,7 @@ class Player(Bot):
 						my_actions[i] = CheckAction()	
 				
 				else:
-					if pips == 1:
+					if pips == 1: # our first move as small blind
 						if win_prob > pot_odds:
 							print(f'Call board {i + 1} w/ {round(pot_odds, 2)} odds.')
 							my_actions[i] = CallAction()
@@ -196,6 +200,7 @@ class Player(Bot):
 							my_actions[i] = FoldAction()
 
 					elif win_prob - .5 > pot_odds or win_prob > .95 - (.05 * (5 - round_state.street)):
+						# second condition is to protect against all-in bots
 						print(f'Call board {i + 1} w/ {round(pot_odds, 2)} odds.')
 						my_actions[i] = CallAction()
 						
