@@ -1,4 +1,4 @@
-from cards import all_cards_excluding, draw_random_cards, best_hand, compare_hands
+from cards import all_cards_excluding, draw_random_cards
 import csv
 import eval7
 
