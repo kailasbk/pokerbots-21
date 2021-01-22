@@ -14,8 +14,7 @@ class Node:
         self.parent = parent
         self.incoming = incoming
         self.owner = owner
-        self.regrets = {}
-        self.children = {}
+        self.branches = {}
         Node.all_nodes.append(self)
 
         pass
@@ -25,10 +24,10 @@ class Node:
         if (self.parent != None):
             string += f'parent: #{self.parent.get_id()} => {self.incoming}\n'
         string += f'owner: {self.owner} \n'
-        string += f'regrets: {self.regrets} \n'
+        string += f'regrets: {self.get_regrets()} \n'
         string += f'branches => children: '
-        for key in self.children:
-            string += f'{key} => #{self.children[key].get_id()}, '
+        for key in self.branches:
+            string += f'{key} => #{self.branches[key][0].get_id()}, '
         return string
 
     def get_node(id):
@@ -42,7 +41,7 @@ class Node:
         return len(Node.all_nodes)
 
     def is_terminal(self) -> bool:
-        return len(self.children) == 0
+        return len(self.branches) == 0
 
     def get_id(self) -> int:
         return self.id
@@ -60,26 +59,21 @@ class Node:
         self.incoming = incoming
 
     def get_child(self, branch):
-        return self.children[branch]
+        return self.branches[branch][0]
 
     def get_branches(self):
-        return self.children.keys()
+        return self.branches.keys()
 
     def set_owner(self, new):
         self.owner = new
 
     def set_parent(self, parent):
         self.parent = parent
-    
-    def set_children(self, children: dict):
-        self.children = children
-        self.reset_regrets()
 
     def append(self, branch, child):
         child.set_parent(self)
         child.set_incoming(branch)
-        self.children[branch] = child
-        self.regrets[branch] = 0
+        self.branches[branch] = (child, 0)
 
     def create_child(self, branch, owner):
         self.append(branch, Node(owner, branch))
@@ -88,18 +82,18 @@ class Node:
         for branch in branches:
             self.create_child(branch, owner)
 
-    def get_regrets(self):
-        return self.regrets
+    def get_regrets(self) -> dict:
+        d = {}
+        for branch in self.branches:
+            d[branch] = self.branches[branch][1]
+        return d
 
     def set_regrets(self, regrets):
         for key in regrets:
-            self.regrets[key] = regrets[key]
+            self.branches[key][1] = regrets[key]
 
     def add_regret(self, branch, amount):
-        if branch in self.get_branches():
-            self.regrets[branch] += amount
-            if self.regrets[branch] < 0:
-                self.regrets[branch] = 0
-
-    def reset_regrets(self):
-        self.regrets = dict.fromkeys(self.children.keys(), 0)
+        if branch in self.branches:
+            self.branches[branch][1] += amount
+            if self.branches[branch][1] < 0:
+                self.branches[branch][1] = 0
