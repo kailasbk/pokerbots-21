@@ -1,54 +1,51 @@
 import random
 from nodes import *
 
-branches_after_dealer = ['check 1', 'raise 6']
-branches_from_check = ['raise 6']
-ends_round = ['check 2', 'call']
-branches_from_dealer = ['.2', '.4', '.6', '.8', '1.0']
-dealer_turns = ['hand', 'flop', 'turn', 'river', 'end']
+raise_branches = ['R6', 'R12']
+ends_round = ['K2', 'C'] # checK, Call
+branches_from_dealer = ['.4', '.6', '.8', '1.0']
+dealer_turns = ['H', 'L', 'T', 'V', 'E'] # Hand, fLop, Turn, riVer, End
 
 def expand_game_tree(start: Node, round: int):
     """
     Takes a starting node and expandes the game tree on its childen.
-    Will be changed later using get_incoming() and create children for a node, which makes more sense
     """
+    incoming_branch = start.get_incoming()
+
+    if 'E' in incoming_branch:
+        return
+
+    opp_owner = 'BB' if start.get_owner() == 'SB' else 'SB'
+
+    if start.get_owner() == 'D':
+        player = 'SB' if round == 1 else 'BB'
+        round += 1
+        start.create_children(branches_from_dealer, player)
+
+    elif start.get_parent().get_owner() == 'D':
+        if round == 1:
+            start.create_child('C', 'BB')
+            start.create_child('F,E', 'D')
+            call_child = start.get_child('C')
+            call_child.create_child('K2,L', 'D')
+            call_child.create_children(raise_branches, 'SB')
+        else:
+            start.create_child('K1', 'BB')
+            start.create_children(raise_branches, 'BB')
+
+    elif 'R' in incoming_branch:
+        start.create_child(f'C,{dealer_turns[round]}', 'D')
+        start.create_child('F,E', 'D')
+
+    elif 'K1' == incoming_branch:
+        start.create_child(f'K2,{dealer_turns[round]}', 'D')
+        start.create_children(raise_branches, opp_owner)
+
     for branch in start.get_branches():
-        if 'end' in branch:
-            continue
-        child: Node = start.get_child(branch)
-        opp_owner = 'BB' if child.get_owner() == 'SB' else 'SB'
-        if start.get_owner() == 'D':
-            if round == 1:
-                child.create_child(f'call => {dealer_turns[round + 1]}', 'D')
-                child.create_child('fold => end', 'D')
-                call_child = child.get_child(f'call => {dealer_turns[round + 1]}')
-                call_child.create_children(branches_from_check, 'SB')
-                expand_game_tree(call_child, round)
-    
-            else:
-                child.create_children(branches_after_dealer, 'SB') # add more raises later
-                expand_game_tree(child, round)
-
-        elif child.get_owner() == 'D':
-            child.create_children(branches_from_dealer, 'BB')
-            expand_game_tree(child, round + 1)
-
-        elif branch == 'check 1':
-            child.create_child(f'check 2,{dealer_turns[round + 1]}', 'D')
-            child.create_children(branches_from_check, opp_owner)
-            expand_game_tree(child, round)
-
-        elif 'raise' in branch:
-            child.create_child(f'call,{dealer_turns[round + 1]}', 'D')
-            child.create_child('fold,end', 'D')
-            expand_game_tree(child, round)
+        expand_game_tree(start.get_child(branch), round)
 
 def create_game_tree():
     start = Node('D')
-    start.create_children(branches_from_dealer, 'SB')
-    expand_game_tree(start, 1)
+    expand_game_tree(start, 0)
 
     return start
-
-start = create_game_tree()
-print(Node.number_of_nodes())

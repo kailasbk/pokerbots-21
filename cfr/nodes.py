@@ -56,6 +56,9 @@ class Node:
     def get_incoming(self):
         return self.incoming
 
+    def set_incoming(self, incoming):
+        self.incoming = incoming
+
     def get_child(self, branch):
         return self.children[branch]
 
@@ -74,6 +77,7 @@ class Node:
 
     def append(self, branch, child):
         child.set_parent(self)
+        child.set_incoming(branch)
         self.children[branch] = child
         self.regrets[branch] = 0
 

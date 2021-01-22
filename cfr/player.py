@@ -63,6 +63,8 @@ class Player:
         
         print(self.history)
 
-player = Player('SB', create_game_tree())
+start = create_game_tree()
+player = Player('SB', start)
 player.test_tree()
+print(Node.number_of_nodes())
 print(h.heap())
