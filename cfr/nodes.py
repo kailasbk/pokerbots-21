@@ -94,6 +94,7 @@ class Node:
 
     def add_regret(self, branch, amount):
         if branch in self.branches:
-            self.branches[branch][1] += amount
-            if self.branches[branch][1] < 0:
-                self.branches[branch][1] = 0
+            new_amount = self.branches[branch][1] + amount
+            if new_amount < 0:
+                new_amount = 0
+            self.branches[branch] = (self.branches[branch][0], new_amount)

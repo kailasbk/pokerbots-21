@@ -1,9 +1,10 @@
 import random
 from nodes import *
 
-raise_branches = ['R6', 'R12']
+raise_branches = ['R8']
+reraise_branches = ['RR8']
 ends_round = ['K2', 'C'] # checK, Call
-branches_from_dealer = ['.4', '.6', '.8', '1.0']
+branches_from_dealer = ['.2', '.4', '.6', '.8', '1.0']
 dealer_turns = ['H', 'L', 'T', 'V', 'E'] # Hand, fLop, Turn, riVer, End
 
 def expand_game_tree(start: Node, round: int):
@@ -18,7 +19,7 @@ def expand_game_tree(start: Node, round: int):
     opp_owner = 'BB' if start.get_owner() == 'SB' else 'SB'
 
     if start.get_owner() == 'D':
-        player = 'SB' if round == 1 else 'BB'
+        player = 'SB' if round == 0 else 'BB'
         round += 1
         start.create_children(branches_from_dealer, player)
 
@@ -30,12 +31,17 @@ def expand_game_tree(start: Node, round: int):
             call_child.create_child('K2,L', 'D')
             call_child.create_children(raise_branches, 'SB')
         else:
-            start.create_child('K1', 'BB')
-            start.create_children(raise_branches, 'BB')
+            start.create_child('K1', 'SB')
+            start.create_children(raise_branches, 'SB')
+    
+    elif 'RR' in incoming_branch:
+        start.create_child(f'C,{dealer_turns[round]}', 'D')
+        start.create_child('F,E', 'D')
 
     elif 'R' in incoming_branch:
         start.create_child(f'C,{dealer_turns[round]}', 'D')
         start.create_child('F,E', 'D')
+        start.create_children(reraise_branches, opp_owner)
 
     elif 'K1' == incoming_branch:
         start.create_child(f'K2,{dealer_turns[round]}', 'D')

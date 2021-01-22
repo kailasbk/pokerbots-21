@@ -1,27 +1,41 @@
 from nodes import *
 from tree import *
-from guppy import hpy
-
-h = hpy()
 
 class Player:
     """
     A player which can traverse a game tree
     """
-    def __init__(self, name, start):
-        self.name = name 
-        self.start = start
-        self.current = self.start
-        self.history = ['start']
+    def __init__(self, name, start, hand = ['Ah', 'Ad']):
+        self.name: str = name 
+        self.start: Node = start
+        self.current: Node = self.start
+        self.history: list = ['start']
+        self.stack = 200
+        self.hand = hand
 
     def __str__(self):
-        return f'I am currently as node #{self.current.get_id()}'
+        return self.name
 
     def get_branches(self):
         return self.current.get_branches()
 
-    def at_terminal(self):
+    def get_hand(self):
+        return self.hand
+
+    def set_hand(self, hand):
+        self.hand = hand
+
+    def get_history(self):
+        return self.history
+
+    def at_start(self) -> bool:
+        return self.current.get_incoming() == ''
+
+    def at_terminal(self) -> bool:
         return self.current.is_terminal()
+
+    def current_node(self) -> Node:
+        return self.current
 
     def choose_branch(self) -> str:
         if self.at_terminal():
@@ -54,17 +68,11 @@ class Player:
             self.current = self.current.get_child(branch)
             self.history.append(branch)
 
-    def owns_node(self):
-        return self.current.get_owner == self.name
+    def is_owner(self) -> bool:
+        return self.current.get_owner() == self.name
     
     def test_tree(self):
         while not self.at_terminal():
             self.move_down(self.choose_branch())
         
         print(self.history)
-
-start = create_game_tree()
-player = Player('SB', start)
-player.test_tree()
-print(Node.number_of_nodes())
-print(h.heap())
