@@ -22,27 +22,32 @@ for k in range(ITERS):
     else:
         value = -int(result[3:])
 
-    while not player.at_start():
+    def compute_regrets(root_node: list, value: int):
         move_taken = player.get_history()[-1]
-        while not (player.at_start() or player.is_owner()):
+        game.move_up()
+        while player.current_node() != root_node:
+            if player.is_owner():
+                node = player.current_node()
+                for branch in node.get_branches():
+                    new_value = 0
+                    if branch != move_taken:
+                        game.move_down(branch)
+                        new_result = game.play()
+                        if new_result[0:2] == str(player):
+                            new_value = int(new_result[3:])
+                        else:
+                            new_value = -int(new_result[3:])
+                        node.add_regret(branch, int((1 + (k/ITERS)) * (new_value - value)))
+                        print(f'updating regrets for node #{node.get_id()}')
+                        compute_regrets(node, new_value)
+                    while player.current_node() != node:
+                        print(player.current_node().get_id())
+                        game.move_up()
+
             move_taken = player.get_history()[-1]
             game.move_up()
-        if player.is_owner():
-            node = player.current_node()
-            print(node)
-            for branch in node.get_branches():
-                new_value = 0
-                if branch != move_taken:
-                    game.move_down(branch)
-                    new_result = game.play()
-                    if result[0:2] == str(player):
-                        new_value = int(result[3:])
-                    else:
-                        new_value = -int(result[3:])
-                node.add_regret(branch, new_value - value)
-                while player.current_node() != node:
-                    game.move_up()
-            game.move_up()
+
+    compute_regrets(gametree, value)
     
     print(f'completed iteration {k + 1}')
 
@@ -51,4 +56,4 @@ f = open('regrets.txt', 'w')
 for node in Node.get_all_nodes():
     regrets = node.get_regrets()
     if regrets != {}:
-        f.write(str(regrets) + '\n')
+        f.write(f'{node.get_id()},{node.get_owner()},{regrets},{[node.get_child(branch).get_id() for branch in node.get_branches()]} \n')

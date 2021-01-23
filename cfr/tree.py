@@ -1,11 +1,11 @@
 import random
 from nodes import *
 
-raise_branches = ['R8']
-reraise_branches = ['RR8']
+raise_branches = ['R8', 'R16', 'R32', 'R64'] # Raise
+reraise_branches = ['RR8', 'RR16', 'RR32', 'RR64'] #ReRaise
 ends_round = ['K2', 'C'] # checK, Call
-branches_from_dealer = ['.2', '.4', '.6', '.8', '1.0']
-dealer_turns = ['H', 'L', 'T', 'V', 'E'] # Hand, fLop, Turn, riVer, End
+branches_from_dealer = [str(num / 10.0) for num in range(3, 11)]
+dealer_turns = ['H', 'L', 'E'] # Hand, fLop, Turn, riVer, End
 
 def expand_game_tree(start: Node, round: int):
     """

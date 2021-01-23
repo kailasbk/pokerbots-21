@@ -1,4 +1,3 @@
-from os import WSTOPPED
 from nodes import Node
 from player import Player
 from tree import create_game_tree, branches_from_dealer
@@ -25,10 +24,16 @@ class Game:
     def move_up(self):
         for player in self.players:
             player.move_up()
+        
+        self.history.pop()
 
     def move_down(self, branch):
         for player in self.players:
             player.move_down(branch)
+        
+        self.history.append(branch)
+        if ',' in branch:
+            self.round += 1
 
     def get_players(self) -> list:
         return self.players
@@ -57,9 +62,6 @@ class Game:
 
         if branch != '':
             self.move_down(branch)
-            self.history.append(branch)
-            if ',' in branch:
-                self.round += 1
 
         else:
             self.history.append('D')
