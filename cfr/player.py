@@ -41,20 +41,9 @@ class Player:
         if self.at_terminal():
             return ''
 
-        regrets = self.current.get_regrets()
-        sum = 0
-        for regret in regrets.values():
-            sum += regret
+        strategy = self.current.get_strategy()
         
-        if sum == 0:
-            return random.choice(list(regrets.keys()))
-        else:
-            num = random.randint(1, sum)
-
-            for key in regrets:
-                num -= regrets[key]
-                if num <= 0:
-                    return key
+        return random.choices(list(strategy.keys()), list(strategy.values()))[0]
 
     def move_up(self):
         parent = self.current.get_parent()

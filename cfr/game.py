@@ -24,7 +24,9 @@ class Game:
     def move_up(self):
         for player in self.players:
             player.move_up()
-        
+
+        if ',' in self.history[-1]:
+            self.round -= 1
         self.history.pop()
 
     def move_down(self, branch):

@@ -88,9 +88,24 @@ class Node:
             d[branch] = self.branches[branch][1]
         return d
 
+    def get_strategy(self) -> dict:
+        d = {}
+        sum = 0
+        for branch in self.branches.values():
+            if branch[1] > 0:
+                sum += branch[1]
+        
+        for branch in self.branches:
+            if sum != 0 and self.branches[branch][1] > 0:
+                d[branch] = self.branches[branch][1] / sum
+            else:
+                d[branch] = 0
+
+        return d
+
     def set_regrets(self, regrets):
-        for key in regrets:
-            self.branches[key][1] = regrets[key]
+        for branch in regrets:
+            self.branches[branch] = (self.branches[branch][0], regrets[branch])
 
     def add_regret(self, branch, amount):
         if branch in self.branches:
