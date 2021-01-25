@@ -4,7 +4,7 @@ from nodes import *
 raise_branches = ['R8', 'R16', 'R32', 'R64'] # Raise
 reraise_branches = ['RR8', 'RR16', 'RR32', 'RR64'] #ReRaise
 ends_round = ['K2', 'C'] # checK, Call
-branches_from_dealer = [str(num / 10.0) for num in range(3, 11)]
+branches_from_dealer = [str(num / 10.0) for num in range(4, 12, 2)]
 dealer_turns = ['H', 'L', 'E'] # Hand, fLop, Turn, riVer, End
 
 def expand_game_tree(start: Node, round: int):

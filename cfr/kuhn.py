@@ -138,19 +138,20 @@ for k in range(ITERS):
         value = -int(result[3:])
 
     compute_regrets(gametree, value)
-    
-    if k % 1000 == 0 and k > 100:
-        try:
-            queen_strat = Node.all_nodes[13].get_strategy()
-            queen_call = queen_strat['C,E'] / (queen_strat['C,E'] + queen_strat['F,E'])
-            queen_sum += queen_call * (1 + (k/ITERS))
-            jack_strat = Node.all_nodes[20].get_strategy()
-            jack_bet = jack_strat['R1'] / (jack_strat['K2,E'] + jack_strat['R1'])
-            jack_sum += jack_bet * (1 + (k/ITERS))
-            updates += (1 + (k/ITERS))
-            c.write(f'{k + 1},{queen_sum / updates},{jack_sum / updates}\n')
-        except:
-            pass
+
+    if k > 100:
+        queen_strat = Node.all_nodes[13].get_strategy()
+        queen_call = queen_strat['C,E']
+        queen_sum += queen_call * (1 + float(5 * k/ITERS))
+        jack_strat = Node.all_nodes[20].get_strategy()
+        jack_bet = jack_strat['R1']
+        jack_sum += jack_bet * (1 + float(5 * k/ITERS))
+        updates += (1 + float(5 * k/ITERS))
+        if k % 1000 == 0:
+            try:
+                c.write(f'{k + 1},{queen_sum / updates},{jack_sum / updates}\n')
+            except:
+                pass
     print(f'completed iteration {k + 1}')
 
 print(queen_sum / updates, jack_sum / updates)

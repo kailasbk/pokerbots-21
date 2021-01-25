@@ -3,6 +3,7 @@ from player import *
 from tree import *
 from game import *
 from guppy import hpy
+import json
 
 h = hpy()
 
@@ -10,7 +11,7 @@ gametree = create_game_tree()
 input(f'The game tree has {Node.number_of_nodes()} nodes. Press ENTER to proceeed.')
 #print(h.heap())
 
-def compute_regrets(root_node: list, value: int):
+def compute_regrets(player: Player, root_node: list, value: int):
     move_taken = player.get_history()[-1]
     game.move_up()
     while player.current_node() != root_node:
@@ -25,17 +26,26 @@ def compute_regrets(root_node: list, value: int):
                         new_value = int(new_result[3:])
                     else:
                         new_value = -int(new_result[3:])
-                    node.add_regret(branch, int((1 + (k/ITERS)) * (new_value - value)))
+                    node.add_regret(branch, new_value - value)
                     print(f'updating regrets for node #{node.get_id()}')
-                    compute_regrets(node, new_value)
+                    compute_regrets(player, node, new_value)
                 while player.current_node() != node:
-                    print(player.current_node().get_id())
                     game.move_up()
 
         move_taken = player.get_history()[-1]
         game.move_up()
 
-ITERS = 10000
+ITERS = 100
+strategy_sum = [{}] * Node.number_of_nodes()
+
+for node in Node.all_nodes:
+    if not node.is_terminal():
+        strategy_sum[node.get_id() - 1] = node.get_regrets().copy()
+
+last_sum = strategy_sum.copy()
+c = open('deltas.csv', 'w')
+c.write('iter,delta\n')
+
 for k in range(ITERS):
     game = Game(gametree)
     player = game.get_players()[k % 2]
@@ -47,13 +57,29 @@ for k in range(ITERS):
     else:
         value = -int(result[3:])
 
-    compute_regrets(gametree, value)
-    
+    # compute regret for every decision
+    compute_regrets(player, gametree, value)
+
+    # adjust average strategy
+    weight = 1 + float(k/ITERS)
+    for node in Node.all_nodes:
+        if node.get_owner() == str(player) and not node.is_terminal():
+            strategy = strategy_sum[node.get_id() - 1]
+            new_strategy = node.get_strategy()
+            for branch in strategy:
+                strategy_sum[node.get_id() - 1][branch] += weight * new_strategy[branch]
+            
     print(f'completed iteration {k + 1}')
 
-f = open('regrets.txt', 'w')
+for strat in strategy_sum:
+    if strat != {}:
+        sum = 0
+        for branch in strat:
+            sum += strat[branch]
+        
+        if sum != 0:
+            for branch in strat:
+                strat[branch] /= sum
 
-for node in Node.get_all_nodes():
-    regrets = node.get_regrets()
-    if regrets != {}:
-        f.write(f'{node.get_id()},{node.get_owner()},{regrets},{[node.get_child(branch).get_id() for branch in node.get_branches()]} \n')
+f = open('strategy.json', 'w')
+json.dump(strategy_sum, f)

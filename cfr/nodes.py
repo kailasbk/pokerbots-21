@@ -91,15 +91,19 @@ class Node:
     def get_strategy(self) -> dict:
         d = {}
         sum = 0
+        length = len(self.branches)
         for branch in self.branches.values():
             if branch[1] > 0:
                 sum += branch[1]
         
         for branch in self.branches:
-            if sum != 0 and self.branches[branch][1] > 0:
-                d[branch] = self.branches[branch][1] / sum
+            if sum != 0:
+                if self.branches[branch][1] > 0:
+                    d[branch] = self.branches[branch][1] / sum
+                else:
+                    d[branch] = 0
             else:
-                d[branch] = 0
+                d[branch] = 1 / length
 
         return d
 
