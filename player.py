@@ -1,9 +1,15 @@
+from typing import cast
 from skeleton.actions import FoldAction, CallAction, CheckAction, RaiseAction, AssignAction
 from skeleton.states import GameState, TerminalState, RoundState, BoardState
 from skeleton.states import NUM_ROUNDS, STARTING_STACK, BIG_BLIND, SMALL_BLIND, NUM_BOARDS
 from skeleton.bot import Bot
 from skeleton.runner import parse_args, run_bot
+
 from cards import *
+from cfr.tree import create_game_tree, branches_from_dealer, raise_branches
+from cfr.nodes import *
+from cfr.player import Player as CFRPlayer
+import json
 
 class Player(Bot):
 	'''
@@ -21,6 +27,14 @@ class Player(Bot):
 		Nothing.
 		'''
 		self.cards = []
+		self.tree = create_game_tree()
+		print('Loading strategy...')
+		f = open('strategy.json', 'r')
+		strategy = json.load(f)
+		for i in range(len(Node.all_nodes)):
+			Node.all_nodes[i].set_strategy(strategy[i])
+		print('Strategy loaded!')
+
 		pass
 
 	def allocate_cards(self):
@@ -101,6 +115,9 @@ class Player(Bot):
 
 		self.card_allocation = self.allocate_cards()
 		print(f"My card allocation is {self.card_allocation}")
+
+		name = 'SB' if active == 0 else 'BB'
+		self.players = [CFRPlayer(name, self.tree, self.card_allocation[i]) for i in range(NUM_BOARDS)]
 		pass
 
 	def handle_round_over(self, game_state: GameState, terminal_state: TerminalState, active: int):
@@ -140,8 +157,7 @@ class Player(Bot):
 		legal_actions = round_state.legal_actions()
 		my_actions = [None] * NUM_BOARDS
 		stack = round_state.stacks[active]
-
-		# cards = self.allocate_cards()
+		raise_bounds = list(round_state.raise_bounds())
 
 		for i in range(NUM_BOARDS):
 			board_state = round_state.board_states[i]
@@ -150,14 +166,85 @@ class Player(Bot):
 				my_actions[i] = CheckAction()
 				continue
 
+			elif board_state.settled:
+				my_actions[i] = CheckAction()
+				continue
+
 			elif AssignAction in legal_actions[i]:
 				my_actions[i] = AssignAction(self.card_allocation[i])
 
-			else:
-				if board_state.settled:
+			elif round_state.street <= 3:
+				print(f'-Board {i+1}-')
+				pips = board_state.pips[active]
+				opp_pips = board_state.pips[1-active]
+				continue_cost = opp_pips - pips
+				while not self.players[i].is_owner():
+					if self.players[i].current_node().get_owner() == 'D':
+						mc = self.win_probability(board_state, active)
+						for hand_range in branches_from_dealer:
+							if mc <= float(hand_range):
+								self.players[i].move_down(hand_range)
+								print(f'Branching from dealer: {hand_range}')
+								break
+					else:
+						prev = self.players[i].current_node().get_incoming()
+						if continue_cost > 0:
+							raise_amounts = [int(action[1:]) for action in raise_branches]
+							casted_amount = 0
+							for amount in raise_amounts:
+								if continue_cost <= amount:
+									casted_amount = amount
+									break
+							if casted_amount == 0: 
+								casted_amount = raise_amounts[-1]
+
+							if 'R' in prev:
+								self.players[i].move_down(f'RR{casted_amount}')
+								print(f'Opp chose branch: RR{casted_amount}')
+							else:
+								self.players[i].move_down(f'R{casted_amount}')
+								print(f'Opp chose branch: R{casted_amount}')
+						else:
+							if 'R' in prev:
+								self.players[i].move_down('C')
+								print('Opp chose branch: C')
+							elif 'K1' == prev or 'C' == prev:
+								self.players[i].move_down('K2')
+								print('Opp chose branch: K2')
+							elif '.' in prev:
+								if 'K1' in self.players[i].get_branches():
+									self.players[i].move_down('K1')
+									print('Opp chose branch: K1')
+								elif 'C' in self.players[i].get_branches():
+									self.players[i].move_down('C')
+									print('Opp chose branch: C')
+
+				branch = self.players[i].choose_branch()
+				prev = self.players[i].current_node().get_incoming()
+				if 'RR' in branch and CallAction in legal_actions[i]:
+					my_actions[i] = CallAction()
+					self.players[i].move_down('C')
+					print('Choosing branch: C')
+				elif 'R' in branch and RaiseAction in legal_actions[i]:
+					raise_amount = min(raise_bounds[1], int(branch[1:]))
+					raise_bounds[1] -= raise_amount
+					my_actions[i] = RaiseAction(raise_amount + opp_pips)
+					self.players[i].move_down(branch)
+					print('Choosing branch:', branch)
+				elif 'C' in branch and CallAction in legal_actions[i]:
+					my_actions[i] = CallAction()
+					self.players[i].move_down(branch)
+					print('Choosing branch:', branch)
+				elif 'K' in branch and CheckAction in legal_actions[i]:
 					my_actions[i] = CheckAction()
-					continue
-				
+					self.players[i].move_down(branch)
+					print('Choosing branch:', branch)
+				elif 'F' in branch and FoldAction in legal_actions[i]:
+					my_actions[i] = FoldAction()
+					self.players[i].move_down(branch)
+					print('Choosing branch:', branch)
+
+			else:				
 				pips = board_state.pips[active]
 				opp_pips = board_state.pips[1-active]
 				continue_cost = opp_pips - pips

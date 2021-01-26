@@ -107,6 +107,10 @@ class Node:
 
         return d
 
+    def set_strategy(self, strat):
+        for branch in strat:
+            self.branches[branch] = (self.branches[branch][0], int(strat[branch] * 20))
+
     def set_regrets(self, regrets):
         for branch in regrets:
             self.branches[branch] = (self.branches[branch][0], regrets[branch])

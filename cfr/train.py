@@ -1,7 +1,7 @@
-from nodes import Node
-from player import *
-from tree import *
-from game import *
+from .nodes import Node
+from .player import *
+from .tree import *
+from .game import *
 from guppy import hpy
 import json
 
@@ -35,7 +35,7 @@ def compute_regrets(player: Player, root_node: list, value: int):
         move_taken = player.get_history()[-1]
         game.move_up()
 
-ITERS = 100
+ITERS = 100000
 strategy_sum = [{}] * Node.number_of_nodes()
 
 for node in Node.all_nodes:

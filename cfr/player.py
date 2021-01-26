@@ -1,5 +1,6 @@
-from nodes import *
-from tree import *
+from .nodes import *
+from .tree import *
+import random
 
 class Player:
     """
@@ -56,6 +57,14 @@ class Player:
             self.prev_branch = branch
             self.current = self.current.get_child(branch)
             self.history.append(branch)
+        
+        else:
+            for branch_candidate in self.current.get_branches():
+                if branch in branch_candidate:
+                    self.prev_branch = branch_candidate
+                    self.current = self.current.get_child(branch_candidate)
+                    self.history.append(branch_candidate)
+                    break
 
     def is_owner(self) -> bool:
         return self.current.get_owner() == self.name

@@ -1,7 +1,7 @@
-from nodes import Node
-from player import Player
-from tree import create_game_tree, branches_from_dealer
-from cards import *
+from .nodes import Node
+from .player import Player
+from .tree import create_game_tree, branches_from_dealer
+from .cards import *
 
 class Game:
     """
@@ -78,11 +78,11 @@ class Game:
         while not self.is_finished():
             self.take_turn()
         
-        total = 2
+        total = 6 # 2 + amount on the board
         raise_amount = 0
 
         if len(self.history) == 3:
-            return 'SB -3'
+            return 'SB -7'
         else:
             for event in self.history:
                 if 'RR' in event:
