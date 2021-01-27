@@ -29,8 +29,9 @@ class Player(Bot):
 		self.cards = []
 		self.tree = create_game_tree()
 		print('Loading strategy...')
-		f = open('strategy.json', 'r')
+		f = open('strats/strategy500000.json', 'r')
 		strategy = json.load(f)
+		assert len(strategy) == Node.number_of_nodes()
 		for i in range(len(Node.all_nodes)):
 			Node.all_nodes[i].set_strategy(strategy[i])
 		print('Strategy loaded!')
@@ -77,21 +78,16 @@ class Player(Bot):
 		assert(len(pairs_of_singles) + len(pairs) == NUM_BOARDS)
 		return pairs_of_singles + pairs
 
-		# naive: sequentially allocated cards
-		# return [[self.cards[2 * i], self.cards[2 * i + 1]] for i in range(NUM_BOARDS)]
-
 	def win_probability(self, board_state: BoardState, active: int):
 		hole_cards = board_state.hands[active] # the two hole cards for this board
 
 		seen_cards = self.cards # so far, the 2 * NUM_BOARDS cards in our holes
 		shared_cards = []
 
-		# print(f"These are the community cards from board_state.deck: {board_state.deck}")
 		for card in board_state.deck: # all community cards
 			if card != '': # community card has been revealed
 				seen_cards.append(card) 
 				shared_cards.append(card)
-		# print(f"These are the shared cards (nonempty cards from board_state.deck): {shared_cards}")
 
 		remaining_cards = all_cards_excluding(seen_cards)
 
@@ -156,32 +152,37 @@ class Player(Bot):
 		'''
 		legal_actions = round_state.legal_actions()
 		my_actions = [None] * NUM_BOARDS
-		stack = round_state.stacks[active]
 		raise_bounds = list(round_state.raise_bounds())
+		print(raise_bounds)
+		total_cost = sum([(round_state.board_states[i].pips[1-active] - round_state.board_states[i].pips[active]) if isinstance(round_state.board_states[i], BoardState) else 0 for i in range(NUM_BOARDS)])
 
 		for i in range(NUM_BOARDS):
 			board_state = round_state.board_states[i]
+			board_actions = legal_actions[i]
 
-			if isinstance(board_state, TerminalState):
-				my_actions[i] = CheckAction()
-				continue
-
-			elif board_state.settled:
+			if isinstance(board_state, TerminalState) or board_state.settled:
 				my_actions[i] = CheckAction()
 				continue
 
 			elif AssignAction in legal_actions[i]:
 				my_actions[i] = AssignAction(self.card_allocation[i])
+				mc = monte_carlo_prob(self.card_allocation[i], [], all_cards_excluding(self.cards))
+				for hand_range in branches_from_dealer[0]:
+					if mc <= float(hand_range):
+						self.players[i].move_down(hand_range)
+						print(f'Branching from dealer: {hand_range}')
+						break
 
 			elif round_state.street <= 3:
 				print(f'-Board {i+1}-')
 				pips = board_state.pips[active]
 				opp_pips = board_state.pips[1-active]
+				pot = board_state.pot + opp_pips + pips
 				continue_cost = opp_pips - pips
-				while not self.players[i].is_owner():
+				while not (self.players[i].is_owner() or self.players[i].at_terminal()):
 					if self.players[i].current_node().get_owner() == 'D':
 						mc = self.win_probability(board_state, active)
-						for hand_range in branches_from_dealer:
+						for hand_range in branches_from_dealer[1]:
 							if mc <= float(hand_range):
 								self.players[i].move_down(hand_range)
 								print(f'Branching from dealer: {hand_range}')
@@ -189,21 +190,25 @@ class Player(Bot):
 					else:
 						prev = self.players[i].current_node().get_incoming()
 						if continue_cost > 0:
-							raise_amounts = [int(action[1:]) for action in raise_branches]
-							casted_amount = 0
-							for amount in raise_amounts:
-								if continue_cost <= amount:
-									casted_amount = amount
-									break
-							if casted_amount == 0: 
-								casted_amount = raise_amounts[-1]
-
-							if 'R' in prev:
-								self.players[i].move_down(f'RR{casted_amount}')
-								print(f'Opp chose branch: RR{casted_amount}')
+							if round_state.street > 0 and prev == 'C':
+								self.players[i].move_down('K2')
+								print(f'Opp chose branch: K2')
 							else:
-								self.players[i].move_down(f'R{casted_amount}')
-								print(f'Opp chose branch: R{casted_amount}')
+								raise_bounds = [int(pot * (2 ** (int(action.replace('R', '')) - 2.5))) for action in raise_branches]
+								casted_amount = 0
+								for k in range(len(raise_bounds)):
+									if continue_cost <= raise_bounds[i]:
+										casted_amount = k + 1
+										break
+								if casted_amount == 0: 
+									casted_amount = len(raise_bounds)
+
+								if 'R' in prev:
+									self.players[i].move_down(f'RR{casted_amount}')
+									print(f'Opp chose branch: RR{casted_amount}')
+								else:
+									self.players[i].move_down(f'R{casted_amount}')
+									print(f'Opp chose branch: R{casted_amount}')
 						else:
 							if 'R' in prev:
 								self.players[i].move_down('C')
@@ -221,28 +226,36 @@ class Player(Bot):
 
 				branch = self.players[i].choose_branch()
 				prev = self.players[i].current_node().get_incoming()
-				if 'RR' in branch and CallAction in legal_actions[i]:
+				if 'RR' in branch and CallAction in board_actions:
 					my_actions[i] = CallAction()
 					self.players[i].move_down('C')
 					print('Choosing branch: C')
-				elif 'R' in branch and RaiseAction in legal_actions[i]:
-					raise_amount = min(raise_bounds[1], int(branch[1:]))
+				elif 'R' in branch and 'RR' not in branch and RaiseAction in board_actions:
+					raise_amount = max(BIG_BLIND, min(raise_bounds[1], int(pot * (2 ** (int(branch[1:]) - 3)))))
 					raise_bounds[1] -= raise_amount
 					my_actions[i] = RaiseAction(raise_amount + opp_pips)
 					self.players[i].move_down(branch)
 					print('Choosing branch:', branch)
-				elif 'C' in branch and CallAction in legal_actions[i]:
+				elif 'C' in branch and CallAction in board_actions:
 					my_actions[i] = CallAction()
 					self.players[i].move_down(branch)
 					print('Choosing branch:', branch)
-				elif 'K' in branch and CheckAction in legal_actions[i]:
+				elif 'K' in branch and CheckAction in board_actions:
 					my_actions[i] = CheckAction()
 					self.players[i].move_down(branch)
 					print('Choosing branch:', branch)
-				elif 'F' in branch and FoldAction in legal_actions[i]:
+				elif 'F' in branch and FoldAction in board_actions:
 					my_actions[i] = FoldAction()
 					self.players[i].move_down(branch)
 					print('Choosing branch:', branch)
+				elif CheckAction in board_actions:
+					my_actions[i] = CheckAction()
+					self.players[i].move_down('K')
+					print('Defaulting branch: K')
+				else:
+					my_actions[i] = CallAction()
+					self.players[i].move_down('C')
+					print('Defaulting branch: C')
 
 			else:				
 				pips = board_state.pips[active]
@@ -253,41 +266,32 @@ class Player(Bot):
 				win_prob = self.win_probability(board_state, active)
 
 				if continue_cost == 0:
-					if win_prob >= .7 and RaiseAction in legal_actions[i] and stack != 0:
-						if win_prob >= 0.9:
-							increase = max((3 * BIG_BLIND), int(0.75 * pot))
+					if win_prob >= .7 and RaiseAction in legal_actions[i] and raise_bounds[1] >= BIG_BLIND:
+						if win_prob > 0.96:
+							increase = min(raise_bounds[1] - total_cost, int(pot))
+						elif win_prob >= 0.9:
+							increase = min(raise_bounds[1] - total_cost, int(.75 * pot))
 						else:
-							increase = max((3 * BIG_BLIND), int(0.5 * pot))
-							
-						# increase = max((3 * BIG_BLIND), int(0.5 * pot))
+							increase = min(raise_bounds[1] - total_cost, int(0.5 * pot))
+ 
+						amount = increase
+						print(f'Bet/raise board {i + 1} to {amount}.')
+						my_actions[i] = RaiseAction(amount)
+						raise_bounds[1] -= amount
 
-						amount = board_state.pips[1-active] + increase
-						# if can bet normally
-						if stack > increase + continue_cost:
-							print(f'Bet/raise board {i + 1} to {amount}.')
-							my_actions[i] = RaiseAction(amount)
-							stack -= amount
-						# otherwise (don't do all in rn)
-						else:
-							print(f'Check board {i + 1}.')
-							my_actions[i] = CheckAction()
-						# if its not worth raising, just check
 					else:
-						# else check on the board
-						print(f'Check board {i + 1}.')
-						my_actions[i] = CheckAction()	
-				
+						print(f'Check {i + 1}.')
+						my_actions[i] = CheckAction()
+
 				else:
-					if pips == 1: # our first move as small blind
-						if win_prob > pot_odds:
-							print(f'Call board {i + 1} w/ {round(pot_odds, 2)} odds.')
-							my_actions[i] = CallAction()
-						else:
-							print(f'Fold board {i + 1}')
-							my_actions[i] = FoldAction()
+					if win_prob > .97 and RaiseAction in legal_actions[i] and raise_bounds[1] >= BIG_BLIND:
+						increase = min(raise_bounds[1] - total_cost, int(.5 * pot) + opp_pips)
+						amount = increase + opp_pips
+						print(f'Reraise board {i + 1} to {amount}.')
+						my_actions[i] = RaiseAction(amount)
+						raise_bounds[1] -= amount
 
 					elif win_prob - .5 > pot_odds or win_prob > .95 - (.05 * (5 - round_state.street)):
-						# second condition is to protect against all-in bots
 						print(f'Call board {i + 1} w/ {round(pot_odds, 2)} odds.')
 						my_actions[i] = CallAction()
 						

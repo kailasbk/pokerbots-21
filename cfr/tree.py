@@ -1,9 +1,9 @@
 from .nodes import *
 
-raise_branches = ['R8', 'R16', 'R32', 'R64'] # Raise
-reraise_branches = ['RR8', 'RR16', 'RR32', 'RR64'] #ReRaise
+raise_branches = ['R1', 'R2', 'R3', 'R4', 'R5'] # Raise
+reraise_branches = ['RR1', 'RR2', 'RR3', 'RR4'] #ReRaise
 ends_round = ['K2', 'C'] # checK, Call
-branches_from_dealer = [str(num / 10.0) for num in range(4, 12, 2)]
+branches_from_dealer = [['.5', '.7', '.9'], ['.2', '.4', '.6', '.7', '.8', '.9', '1.0']]
 dealer_turns = ['H', 'L', 'E'] # Hand, fLop, Turn, riVer, End
 
 def expand_game_tree(start: Node, round: int):
@@ -19,8 +19,8 @@ def expand_game_tree(start: Node, round: int):
 
     if start.get_owner() == 'D':
         player = 'SB' if round == 0 else 'BB'
+        start.create_children(branches_from_dealer[round], player)
         round += 1
-        start.create_children(branches_from_dealer, player)
 
     elif start.get_parent().get_owner() == 'D':
         if round == 1:

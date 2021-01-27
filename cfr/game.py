@@ -69,7 +69,7 @@ class Game:
             self.history.append('D')
             for player in self.players:
                 mc = monte_carlo_prob(player.get_hand(), self.cards_on_table(self.round))
-                for range in branches_from_dealer:
+                for range in branches_from_dealer[self.round - 1]:
                     if mc <= float(range):
                         player.move_down(range)
                         break
@@ -87,9 +87,9 @@ class Game:
             for event in self.history:
                 if 'RR' in event:
                     total += 2 * raise_amount
-                    raise_amount = int(event[2:])
+                    raise_amount = int(total * (2 ** (int(event[2:]) - 3)))
                 elif 'R' in event:
-                    raise_amount = int(event[1:])
+                    raise_amount = int(total * (2 ** (int(event[1:]) - 3)))
                 elif 'C' in event:
                     total += 2 * raise_amount
                     raise_amount = 0

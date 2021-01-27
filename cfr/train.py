@@ -35,16 +35,12 @@ def compute_regrets(player: Player, root_node: list, value: int):
         move_taken = player.get_history()[-1]
         game.move_up()
 
-ITERS = 100000
+ITERS = 1000000
 strategy_sum = [{}] * Node.number_of_nodes()
 
 for node in Node.all_nodes:
     if not node.is_terminal():
         strategy_sum[node.get_id() - 1] = node.get_regrets().copy()
-
-last_sum = strategy_sum.copy()
-c = open('deltas.csv', 'w')
-c.write('iter,delta\n')
 
 for k in range(ITERS):
     game = Game(gametree)
@@ -68,18 +64,21 @@ for k in range(ITERS):
             new_strategy = node.get_strategy()
             for branch in strategy:
                 strategy_sum[node.get_id() - 1][branch] += weight * new_strategy[branch]
+    
+    if (k + 1) * 10 % ITERS == 0:
+        strategy_copy = strategy_sum.copy()
+        for strat in strategy_copy:
+            if strat != {}:
+                sum = 0
+                for branch in strat:
+                    sum += strat[branch]
+                
+                if sum != 0:
+                    for branch in strat:
+                        strat[branch] /= sum
+
+        f = open(f'strats/strategy{k+1}.json', 'w')
+        json.dump(strategy_sum, f)
+        f.close()
             
     print(f'completed iteration {k + 1}')
-
-for strat in strategy_sum:
-    if strat != {}:
-        sum = 0
-        for branch in strat:
-            sum += strat[branch]
-        
-        if sum != 0:
-            for branch in strat:
-                strat[branch] /= sum
-
-f = open('strategy.json', 'w')
-json.dump(strategy_sum, f)
