@@ -26,6 +26,7 @@ def expand_game_tree(start: Node, round: int):
         if round == 1:
             start.create_child('C', 'BB')
             start.create_child('F,E', 'D')
+            start.create_children(reraise_branches, 'BB')
             call_child = start.get_child('C')
             call_child.create_child('K2,L', 'D')
             call_child.create_children(raise_branches, 'SB')

@@ -27,9 +27,12 @@ class Player(Bot):
 		Nothing.
 		'''
 		self.cards = []
+		self.offsets = [.4, .4, .4]
+		self.when_raised = [[]] * 3
 		self.tree = create_game_tree()
+		self.clinched = False
 		print('Loading strategy...')
-		f = open('strats/strategy500000.json', 'r')
+		f = open('strats/strategy1000000.json', 'r')
 		strategy = json.load(f)
 		assert len(strategy) == Node.number_of_nodes()
 		for i in range(len(Node.all_nodes)):
@@ -107,6 +110,7 @@ class Player(Bot):
 		'''
 		self.cards = round_state.hands[active]
 		print(f"---BEGIN ROUND {game_state.round_num}--CLOCK:{round(game_state.game_clock, 2)}---")
+		print(f"My call offsets: {self.offsets}")
 		print(f"My cards are {self.cards}")
 
 		self.card_allocation = self.allocate_cards()
@@ -114,6 +118,7 @@ class Player(Bot):
 
 		name = 'SB' if active == 0 else 'BB'
 		self.players = [CFRPlayer(name, self.tree, self.card_allocation[i]) for i in range(NUM_BOARDS)]
+		self.when_raised = [[]] * 3
 		pass
 
 	def handle_round_over(self, game_state: GameState, terminal_state: TerminalState, active: int):
@@ -131,8 +136,23 @@ class Player(Bot):
 		previous_state: RoundState = terminal_state.previous_state
 		for i in range(3):
 			opp_hand = previous_state.board_states[i].previous_state.hands[1-active]
+			shared_cards = previous_state.board_states[i].previous_state.deck
 			if opp_hand != ['', '']:
 				print(f"Shown [{' '.join(opp_hand)}] on board {i + 1}")
+				eval_shared = [eval7.Card(card) for card in shared_cards]
+				opp = eval7.evaluate(eval_shared + [eval7.Card(card) for card in opp_hand])
+				me = eval7.evaluate(eval_shared + [eval7.Card(card) for card in self.card_allocation[i]])
+				print(self.card_allocation[i])
+				if self.when_raised[i] != []:
+					if opp > me:
+						self.offsets[i] += .01
+					elif opp < me:
+						self.offsets[i] -= .01
+					
+					if self.offsets[i] < .1:
+						self.offsets[i] = .1
+					elif self.offsets[i] > .7:
+						self.offsets[i] = .7
 		
 		print(f"---END ROUND {game_state.round_num}----CLOCK:{round(game_state.game_clock, 2)}---")
 		pass
@@ -179,7 +199,11 @@ class Player(Bot):
 				opp_pips = board_state.pips[1-active]
 				pot = board_state.pot + opp_pips + pips
 				continue_cost = opp_pips - pips
+				count = 0
 				while not (self.players[i].is_owner() or self.players[i].at_terminal()):
+					if count > 10:
+						break
+						
 					if self.players[i].current_node().get_owner() == 'D':
 						mc = self.win_probability(board_state, active)
 						for hand_range in branches_from_dealer[1]:
@@ -194,14 +218,18 @@ class Player(Bot):
 								self.players[i].move_down('K2')
 								print(f'Opp chose branch: K2')
 							else:
-								raise_bounds = [int(pot * (2 ** (int(action.replace('R', '')) - 2.5))) for action in raise_branches]
+								branches = []
+								for branch in self.players[i].get_branches():
+									if 'R' in branch:
+										branches.append(branch)
+								raise_boundaries = [int((pot - continue_cost) * (2 ** (int(branch.replace('R', '')) - 2.5))) for branch in branches]
 								casted_amount = 0
-								for k in range(len(raise_bounds)):
-									if continue_cost <= raise_bounds[i]:
-										casted_amount = k + 1
+								for k in range(len(raise_boundaries)):
+									if continue_cost <= raise_boundaries[k]:
+										casted_amount = branches[k].replace('R', '')
 										break
 								if casted_amount == 0: 
-									casted_amount = len(raise_bounds)
+									casted_amount = branches[-1].replace('R', '')
 
 								if 'R' in prev:
 									self.players[i].move_down(f'RR{casted_amount}')
@@ -223,6 +251,27 @@ class Player(Bot):
 								elif 'C' in self.players[i].get_branches():
 									self.players[i].move_down('C')
 									print('Opp chose branch: C')
+					count += 1
+
+				if continue_cost > 2.25 * (pot - continue_cost):
+					mc = self.win_probability(board_state, active)
+					if (mc > .7 and round_state.street == 0) or (mc > .85 and round_state.street == 3):
+						my_actions[i] = CallAction()
+						self.players[i].move_down('C')
+						print('Swerving branch: C')
+					else:
+						my_actions[i] = FoldAction()
+						self.players[i].move_down('F')
+						print('Swerving branch: F')
+					continue
+				elif not (self.players[i].is_owner() or self.players[i].at_terminal()):
+					if CheckAction in board_actions:
+						my_actions[i] = CheckAction()
+						print('Timed out branch: K')
+					else:
+						my_actions[i] = CallAction()
+						print('Timed out branch: C')
+					continue
 
 				branch = self.players[i].choose_branch()
 				prev = self.players[i].current_node().get_incoming()
@@ -291,8 +340,9 @@ class Player(Bot):
 						my_actions[i] = RaiseAction(amount)
 						raise_bounds[1] -= amount
 
-					elif win_prob - .5 > pot_odds or win_prob > .95 - (.05 * (5 - round_state.street)):
+					elif win_prob - .4 > pot_odds or win_prob > .95 - (.05 * (5 - round_state.street)):
 						print(f'Call board {i + 1} w/ {round(pot_odds, 2)} odds.')
+						self.when_raised[i].append(round_state.street)
 						my_actions[i] = CallAction()
 						
 					else:

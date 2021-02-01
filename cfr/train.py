@@ -80,5 +80,13 @@ for k in range(ITERS):
         f = open(f'strats/strategy{k+1}.json', 'w')
         json.dump(strategy_sum, f)
         f.close()
+
+        regret_snapshot = []
+        for node in Node.all_nodes:
+            regret_snapshot.append(node.get_regrets())
+
+        f = open(f'strats/regrets{k+1}.json', 'w')
+        json.dump(regret_snapshot, f)
+        f.close()
             
     print(f'completed iteration {k + 1}')
